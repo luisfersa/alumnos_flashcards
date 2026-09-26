@@ -1409,6 +1409,130 @@ body.is-dragging .class-row {
     color: var(--success);
     border: 1px solid var(--success);
 }
+
+/* =========================================================
+   REVERSE QUIZ (Nombre -> 4 Fotos) & QUIZ DE CLASES
+   ========================================================= */
+.reverse-name-banner {
+    background: color-mix(in srgb, var(--primary) 12%, var(--card-bg));
+    border: 2px solid var(--primary);
+    border-radius: 12px;
+    padding: 1.25rem 2rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    width: 100%;
+    max-width: 520px;
+}
+
+.reverse-name-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--title-color);
+    margin: 0;
+}
+
+.reverse-name-subtitle {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+}
+
+.reverse-photos-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    width: 100%;
+    max-width: 520px;
+}
+
+.reverse-photo-card {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    border-radius: 14px;
+    overflow: hidden;
+    cursor: pointer;
+    background: var(--input-bg);
+    border: 3px solid var(--card-border);
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s, box-shadow 0.2s;
+    padding: 0;
+}
+
+.reverse-photo-card:hover:not(:disabled) {
+    transform: scale(1.04);
+    border-color: var(--primary);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.reverse-photo-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.reverse-photo-card .reverse-empty-photo {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    background: var(--secondary);
+    color: var(--text-muted);
+}
+
+.reverse-photo-card.correct {
+    border-color: var(--success) !important;
+    box-shadow: 0 0 0 4px var(--success);
+    transform: scale(1.05);
+}
+
+.reverse-photo-card.wrong {
+    border-color: var(--danger) !important;
+    box-shadow: 0 0 0 4px var(--danger);
+    opacity: 0.6;
+}
+
+.reverse-photo-card .reverse-key-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 26px;
+    height: 26px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #ffffff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    z-index: 2;
+}
+
+/* Quiz de Clases */
+.class-quiz-photo-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.class-quiz-name {
+    font-size: 1.35rem;
+    font-weight: 700;
+    margin-top: 0.75rem;
+    color: var(--title-color);
+}
+
+.class-quiz-hint-title {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+}
 .quiz-feedback-banner.error {
     background: color-mix(in srgb, var(--danger) 15%, transparent);
     color: var(--danger);

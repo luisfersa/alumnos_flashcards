@@ -349,7 +349,7 @@ function init() {
     });
 
     // Botones de modos de juego (MP1: addEventListener en vez de onclick inline)
-    dom.gameBtns.forEach(btn => {
+    document.querySelectorAll('.game-btn').forEach(btn => {
         btn.addEventListener('click', () => startGame(btn.dataset.mode));
     });
 
@@ -1389,14 +1389,21 @@ function finishEdit(student, photoData, isNew = false) {
 async function startGame(mode) {
     const students = getAllGameStudents();
 
-    // U8: validar mínimo de alumnos antes de iniciar
+    // Validar mínimo de alumnos según el modo
     if (students.length === 0) {
         showToast('No hay alumnos en las clases seleccionadas.', 'warning');
         return;
     }
-    if ((mode === 'quiz' || mode === 'timeattack') && students.length < 4) {
-        showToast('Necesitas al menos 4 alumnos para el modo Quiz.', 'warning');
+    if ((mode === 'quiz' || mode === 'timeattack' || mode === 'reverse') && students.length < 4) {
+        showToast('Necesitas al menos 4 alumnos para este modo de Quiz.', 'warning');
         return;
+    }
+    if (mode === 'class_quiz') {
+        const allClasses = Object.keys(state.classes);
+        if (allClasses.length < 2) {
+            showToast('Necesitas tener al menos 2 clases registradas para el Quiz de Clases.', 'warning');
+            return;
+        }
     }
 
     // Limpiar timers anteriores (B8)
@@ -1634,8 +1641,152 @@ async function renderGameCard() {
         });
         dom.gameArea.appendChild(grid);
 
-    // --- MODO ESCRITURA ---
-    } else if (state.currentGameMode === 'typing') {
+    // --- MODO REVERSE QUIZ (Nombre -> 4 Fotos) ---
+    } else if (state.currentGameMode === 'reverse') {
+        const nameBanner = document.createElement('div');
+        nameBanner.className = 'reverse-name-banner';
+        nameBanner.innerHTML = `
+            <div class="reverse-name-subtitle">¿Quién es este alumno/a? Elige su foto:</div>
+            <h2 class="reverse-name-title">${displayName}</h2>
+        `;
+        dom.gameArea.appendChild(nameBanner);
+
+        const feedbackMsg = document.createElement('div');
+        feedbackMsg.className = 'quiz-feedback-banner hidden';
+        dom.gameArea.appendChild(feedbackMsg);
+
+        const allStudents = getAllGameStudents();
+        const pool = allStudents
+            .filter(s => s.id !== student.id)
+            .sort(() => Math.random() - 0.5)
+            .slice(0, 3);
+        const options = [...pool, student].sort(() => Math.random() - 0.5);
+
+        const photosGrid = document.createElement('div');
+        photosGrid.className = 'reverse-photos-grid';
+
+        let answered = false;
+        let cardsList = [];
+
+        for (let i = 0; i < options.length; i++) {
+            const opt = options[i];
+            const optPhoto = await localforage.getItem(opt.id);
+            const card = document.createElement('button');
+            card.className = 'reverse-photo-card';
+            card.dataset.studentId = opt.id;
+            card.innerHTML = `
+                <span class="reverse-key-badge">${i + 1}</span>
+                ${optPhoto ? `<img src="${optPhoto}" alt="Foto opción ${i+1}">` : `<div class="reverse-empty-photo">👤</div>`}
+            `;
+
+            card.addEventListener('click', () => {
+                if (answered) return;
+                answered = true;
+
+                if (opt.id === student.id) {
+                    card.classList.add('correct');
+                    state.score += 10;
+                    feedbackMsg.textContent = '🎉 ¡Exacto! Identificaste su rostro correctamente.';
+                    feedbackMsg.className = 'quiz-feedback-banner success';
+                    feedbackMsg.classList.remove('hidden');
+                    setTimeout(() => { state.gameIndex++; renderGameCard(); }, 800);
+                } else {
+                    card.classList.add('wrong');
+                    const correctCard = cardsList.find(c => c.dataset.studentId === student.id);
+                    if (correctCard) correctCard.classList.add('correct');
+                    feedbackMsg.innerHTML = `💪 ¡Casi! La cara correcta está marcada en verde.`;
+                    feedbackMsg.className = 'quiz-feedback-banner error';
+                    feedbackMsg.classList.remove('hidden');
+
+                    if (!state.gameData.slice(state.gameIndex + 1).some(s => s.id === student.id)) {
+                        state.gameData.push(student);
+                        dom.gameProgress.textContent = `${state.gameIndex + 1} / ${state.gameData.length}`;
+                    }
+                    setTimeout(() => { state.gameIndex++; renderGameCard(); }, 1800);
+                }
+            });
+
+            cardsList.push(card);
+            photosGrid.appendChild(card);
+        }
+
+        dom.gameArea.appendChild(photosGrid);
+
+    // --- MODO QUIZ DE CLASES (¿A qué clase pertenece?) ---
+    } else if (state.currentGameMode === 'class_quiz') {
+        const studentWrapper = document.createElement('div');
+        studentWrapper.className = 'class-quiz-photo-wrapper';
+        studentWrapper.innerHTML = `
+            <img src="${imgSrc}" class="game-photo" style="margin-bottom:0.5rem;" alt="Foto del alumno">
+            <div class="class-quiz-name">${displayName}</div>
+            <div class="class-quiz-hint-title">¿A qué clase o grupo pertenece?</div>
+        `;
+        dom.gameArea.appendChild(studentWrapper);
+
+        const feedbackMsg = document.createElement('div');
+        feedbackMsg.className = 'quiz-feedback-banner hidden';
+        dom.gameArea.appendChild(feedbackMsg);
+
+        // Determinar la clase correcta del alumno
+        let correctClass = student._grupoOriginal;
+        if (!correctClass) {
+            for (const c of Object.keys(state.classes)) {
+                if (state.classes[c]?.some(s => s.id === student.id)) {
+                    correctClass = c;
+                    break;
+                }
+            }
+        }
+
+        // Obtener pool de clases (la correcta + hasta 3 distractores)
+        const allClasses = Object.keys(state.classes);
+        const distractors = allClasses.filter(c => c !== correctClass).sort(() => Math.random() - 0.5).slice(0, 3);
+        const classOptions = [correctClass, ...distractors].sort(() => Math.random() - 0.5);
+
+        const grid = document.createElement('div');
+        grid.className = 'quiz-options';
+
+        let answered = false;
+        let buttonsList = [];
+
+        classOptions.forEach((claseName, idx) => {
+            const btn = document.createElement('button');
+            btn.className = 'quiz-btn';
+            btn.dataset.clase = claseName;
+            btn.innerHTML = `<span class="quiz-key-hint">${idx + 1}</span><strong>${claseName}</strong>`;
+            buttonsList.push(btn);
+
+            btn.addEventListener('click', () => {
+                if (answered) return;
+                answered = true;
+
+                if (claseName === correctClass) {
+                    btn.classList.add('correct');
+                    state.score += 10;
+                    feedbackMsg.textContent = `🎉 ¡Correcto! Pertenece a ${correctClass}.`;
+                    feedbackMsg.className = 'quiz-feedback-banner success';
+                    feedbackMsg.classList.remove('hidden');
+                    setTimeout(() => { state.gameIndex++; renderGameCard(); }, 800);
+                } else {
+                    btn.classList.add('wrong');
+                    const correctBtn = buttonsList.find(b => b.dataset.clase === correctClass);
+                    if (correctBtn) correctBtn.classList.add('correct');
+                    feedbackMsg.innerHTML = `💪 Pertenece a <strong>${correctClass}</strong>. ¡Lo repasaremos!`;
+                    feedbackMsg.className = 'quiz-feedback-banner error';
+                    feedbackMsg.classList.remove('hidden');
+
+                    if (!state.gameData.slice(state.gameIndex + 1).some(s => s.id === student.id)) {
+                        state.gameData.push(student);
+                        dom.gameProgress.textContent = `${state.gameIndex + 1} / ${state.gameData.length}`;
+                    }
+                    setTimeout(() => { state.gameIndex++; renderGameCard(); }, 1800);
+                }
+            });
+
+            grid.appendChild(btn);
+        });
+
+        dom.gameArea.appendChild(grid);
         const img = document.createElement('img');
         img.src       = imgSrc;
         img.className = 'game-photo';
@@ -1696,12 +1847,21 @@ async function renderGameCard() {
 function handleKeyboardShortcuts(e) {
     if (screens.game.classList.contains('hidden')) return;
 
-    // Quiz/Contrarreloj: teclas 1-4
-    if (state.currentGameMode === 'quiz' || state.currentGameMode === 'timeattack') {
+    // Quiz / Contrarreloj / Quiz Clases: teclas 1-4
+    if (state.currentGameMode === 'quiz' || state.currentGameMode === 'timeattack' || state.currentGameMode === 'class_quiz') {
         const idx = parseInt(e.key) - 1;
         if (idx >= 0 && idx < 4) {
             const btns = document.querySelectorAll('.quiz-btn');
             if (btns[idx]) btns[idx].click();
+        }
+    }
+
+    // Reverse Quiz (fotos): teclas 1-4
+    if (state.currentGameMode === 'reverse') {
+        const idx = parseInt(e.key) - 1;
+        if (idx >= 0 && idx < 4) {
+            const cards = document.querySelectorAll('.reverse-photo-card');
+            if (cards[idx]) cards[idx].click();
         }
     }
 

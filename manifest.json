@@ -1,0 +1,19 @@
+{
+  "name": "Mis Alumnos — Flashcards Docente",
+  "short_name": "Mis Alumnos",
+  "description": "Gestión de alumnos con fotos, agenda de contactos y juegos de memorización para docentes.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon-512.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "productivity"]
+}

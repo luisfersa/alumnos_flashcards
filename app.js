@@ -252,6 +252,9 @@ function init() {
 
     // Backup & Restore
     initBackup();
+
+    // Añadir alumno a mitad de curso
+    initAddStudent();
 }
 
 // =========================================================
@@ -1471,6 +1474,103 @@ function initBackup() {
                 importBackup(file);
                 e.target.value = '';
             }
+        });
+    }
+}
+
+// Add student mid-course
+function initAddStudent() {
+    const modal   = document.getElementById('modal-add-student');
+    const form    = document.getElementById('add-student-form');
+    const btnOpen = document.getElementById('btn-add-student');
+    const btnClose= document.getElementById('close-add-student-modal');
+    const btnCancel = document.getElementById('cancel-add-student');
+
+    const closeModal = () => {
+        modal.classList.add('hidden');
+        form.reset();
+    };
+
+    if (btnOpen) {
+        btnOpen.addEventListener('click', () => {
+            // Populate class selector with all known classes, defaulting to current
+            const sel = document.getElementById('new-clase');
+            sel.innerHTML = '';
+            const allClasses = Object.keys(state.classes);
+            allClasses.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = c;
+                // Pre-select the currently viewed class(es)
+                if (state.currentClasses.length === 1 && state.currentClasses[0] === c) {
+                    opt.selected = true;
+                }
+                sel.appendChild(opt);
+            });
+            modal.classList.remove('hidden');
+            document.getElementById('new-nombre').focus();
+        });
+    }
+
+    if (btnClose)  btnClose.addEventListener('click', closeModal);
+    if (btnCancel) btnCancel.addEventListener('click', closeModal);
+    modal?.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const nombre   = document.getElementById('new-nombre').value.trim();
+            const apellidos= document.getElementById('new-apellidos').value.trim();
+            const clase    = document.getElementById('new-clase').value;
+            const telefono = document.getElementById('new-telefono').value.trim();
+            const t1nombre = document.getElementById('new-tutor1-nombre').value.trim();
+            const t1tel    = document.getElementById('new-tutor1-tel').value.trim();
+            const t1email  = document.getElementById('new-tutor1-email').value.trim();
+            const t2nombre = document.getElementById('new-tutor2-nombre').value.trim();
+            const t2tel    = document.getElementById('new-tutor2-tel').value.trim();
+            const t2email  = document.getElementById('new-tutor2-email').value.trim();
+            const photoFile= document.getElementById('new-photo').files[0];
+
+            if (!nombre || !clase) {
+                showToast('El nombre y la clase son obligatorios.', 'warning');
+                return;
+            }
+
+            const generateSafeId = () => {
+                if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+                return Date.now().toString(36) + Math.random().toString(36).substring(2);
+            };
+
+            const newStudent = {
+                id: generateSafeId(),
+                nombre,
+                apellidos,
+                telefonos: telefono,
+                tutor1: { nombre: t1nombre, telefonos: t1tel, email: t1email },
+                tutor2: { nombre: t2nombre, telefonos: t2tel, email: t2email }
+            };
+
+            if (!state.classes[clase]) state.classes[clase] = [];
+            state.classes[clase].push(newStudent);
+            saveState();
+
+            // Save photo if provided
+            if (photoFile) {
+                const reader = new FileReader();
+                reader.onload = async (evt) => {
+                    await localforage.setItem(newStudent.id, evt.target.result);
+                    renderStudents();
+                };
+                reader.readAsDataURL(photoFile);
+            } else {
+                renderStudents();
+            }
+
+            // Update class card count
+            renderClasses();
+            closeModal();
+            showToast(`${nombre} ${apellidos} añadido a ${clase}.`, 'success');
         });
     }
 }

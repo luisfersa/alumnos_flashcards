@@ -5,6 +5,7 @@ const state = {
     classes: {},
     classRows: [], // Guarda las clases organizadas por filas (niveles)
     theme: 'dark',
+    viewMode: 'orla', // 'orla' o 'list'
     currentClasses: [],
     currentGameMode: null,
     gameData: [],
@@ -12,7 +13,9 @@ const state = {
     score: 0,
     timer: null,
     timeLeft: 60,
-    classicTimeout: null  // B3: referencia al timeout de auto-avance
+    classicTimeout: null,  // B3: referencia al timeout de auto-avance
+    selectedStudentId: null,
+    selectedStudentClass: null
 };
 
 (function loadPersistedState() {
@@ -33,8 +36,10 @@ const state = {
     }
     try {
         state.theme = localStorage.getItem('flashcards_theme') || 'dark';
+        state.viewMode = localStorage.getItem('flashcards_view_mode') || 'orla';
     } catch (e) {
         state.theme = 'dark';
+        state.viewMode = 'orla';
     }
 })();
 
@@ -76,6 +81,34 @@ const dom = {
     confirmMessage:      document.getElementById('confirm-message'),
     confirmYes:          document.getElementById('confirm-yes'),
     confirmNo:           document.getElementById('confirm-no'),
+    // Vistas Orla y Ficha de Alumno
+    studentsOrla:        document.getElementById('students-orla'),
+    viewModeOrla:        document.getElementById('view-mode-orla'),
+    viewModeList:        document.getElementById('view-mode-list'),
+    modalDetail:         document.getElementById('modal-student-detail'),
+    closeDetailModal:    document.getElementById('close-detail-modal'),
+    detailPhoto:         document.getElementById('detail-student-photo'),
+    detailPhotoEmpty:    document.getElementById('detail-avatar-empty'),
+    detailName:          document.getElementById('detail-student-name'),
+    detailAka:           document.getElementById('detail-student-aka'),
+    detailClass:         document.getElementById('detail-student-class'),
+    detailTel:           document.getElementById('detail-tel'),
+    detailEmail:         document.getElementById('detail-email'),
+    detailNacimiento:    document.getElementById('detail-nacimiento'),
+    detailTutor1Nombre:  document.getElementById('detail-tutor1-nombre'),
+    detailTutor1Tel:     document.getElementById('detail-tutor1-tel'),
+    detailTutor1Email:   document.getElementById('detail-tutor1-email'),
+    detailTutor2Nombre:  document.getElementById('detail-tutor2-nombre'),
+    detailTutor2Tel:     document.getElementById('detail-tutor2-tel'),
+    detailTutor2Email:   document.getElementById('detail-tutor2-email'),
+    btnEditDetail:       document.getElementById('btn-edit-student-detail'),
+    btnDeleteDetail:     document.getElementById('btn-delete-student-detail'),
+    btnZoomPhoto:        document.getElementById('btn-zoom-photo'),
+    // Lightbox
+    lightboxModal:       document.getElementById('lightbox-modal'),
+    lightboxImg:         document.getElementById('lightbox-img'),
+    lightboxCaption:     document.getElementById('lightbox-caption'),
+    closeLightbox:       document.getElementById('close-lightbox'),
 };
 
 // =========================================================
@@ -132,15 +165,34 @@ function saveState() {
 // INICIALIZACIÓN
 // =========================================================
 function init() {
-    // Tema
-    const themeSelector = document.getElementById('theme-selector');
-    if (themeSelector) {
-        themeSelector.value = state.theme;
-        document.documentElement.setAttribute('data-theme', state.theme);
-        themeSelector.addEventListener('change', (e) => {
-            state.theme = e.target.value;
+    // Tema con iconos
+    document.documentElement.setAttribute('data-theme', state.theme);
+    const themeButtons = document.querySelectorAll('.theme-icon-btn');
+    themeButtons.forEach(btn => {
+        if (btn.dataset.theme === state.theme) btn.classList.add('active');
+        btn.addEventListener('click', () => {
+            state.theme = btn.dataset.theme;
             try { localStorage.setItem('flashcards_theme', state.theme); } catch(err) {}
             document.documentElement.setAttribute('data-theme', state.theme);
+            themeButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        });
+    });
+
+    // Control de vista Orla / Lista
+    if (dom.viewModeOrla && dom.viewModeList) {
+        updateViewModeUI();
+        dom.viewModeOrla.addEventListener('click', () => {
+            state.viewMode = 'orla';
+            try { localStorage.setItem('flashcards_view_mode', 'orla'); } catch(err) {}
+            updateViewModeUI();
+            renderStudents();
+        });
+        dom.viewModeList.addEventListener('click', () => {
+            state.viewMode = 'list';
+            try { localStorage.setItem('flashcards_view_mode', 'list'); } catch(err) {}
+            updateViewModeUI();
+            renderStudents();
         });
     }
 
@@ -149,7 +201,48 @@ function init() {
     // Navegación
     dom.appTitle.addEventListener('click', showHomeScreen);
     dom.backToHomeBtn.addEventListener('click', showHomeScreen);
-    dom.quitGameBtn.addEventListener('click', exitGame); // B1: exitGame definida más abajo, pero se usa como referencia
+    dom.quitGameBtn.addEventListener('click', exitGame);
+
+    // Lightbox modal listeners
+    if (dom.closeLightbox) {
+        dom.closeLightbox.addEventListener('click', closeLightbox);
+        dom.lightboxModal.addEventListener('click', (e) => {
+            if (e.target === dom.lightboxModal) closeLightbox();
+        });
+    }
+    if (dom.btnZoomPhoto) {
+        dom.btnZoomPhoto.addEventListener('click', () => {
+            if (dom.detailPhoto.src && !dom.detailPhoto.classList.contains('hidden')) {
+                openLightbox(dom.detailPhoto.src, dom.detailName.textContent);
+            }
+        });
+    }
+
+    // Modal de Ficha de Alumno listeners
+    if (dom.closeDetailModal) {
+        dom.closeDetailModal.addEventListener('click', closeDetailModal);
+        dom.modalDetail.addEventListener('click', (e) => {
+            if (e.target === dom.modalDetail) closeDetailModal();
+        });
+    }
+    if (dom.btnEditDetail) {
+        dom.btnEditDetail.addEventListener('click', () => {
+            if (state.selectedStudentId && state.selectedStudentClass) {
+                closeDetailModal();
+                openEditModal(state.selectedStudentId, state.selectedStudentClass);
+            }
+        });
+    }
+    if (dom.btnDeleteDetail) {
+        dom.btnDeleteDetail.addEventListener('click', () => {
+            if (state.selectedStudentId && state.selectedStudentClass) {
+                const sId = state.selectedStudentId;
+                const sClass = state.selectedStudentClass;
+                closeDetailModal();
+                deleteStudent(sId, sClass);
+            }
+        });
+    }
 
     // Botones de clases (home)
     document.getElementById('btn-view-all').addEventListener('click', () => {
@@ -485,36 +578,60 @@ function renderClasses() {
         rowEl.className = 'class-row';
         rowEl.dataset.rowIndex = rowIndex;
         
-        rowCards.forEach(className => {
+        rowCards.forEach(async className => {
             if (state.classes[className]) {
                 const card = document.createElement('div');
                 card.className = 'class-card';
                 card.dataset.className = className;
-                const n = state.classes[className].length;
+                const students = state.classes[className];
+                const n = students.length;
+
+                // Elegir un alumno con foto o aleatorio para la vista previa
+                let previewImgSrc = null;
+                if (students.length > 0) {
+                    // Buscar si alguno tiene foto
+                    for (let s of [...students].sort(() => Math.random() - 0.5)) {
+                        const photoData = await localforage.getItem(s.id);
+                        if (photoData) {
+                            previewImgSrc = photoData;
+                            break;
+                        }
+                    }
+                }
+
+                const avatarHtml = previewImgSrc
+                    ? `<img src="${previewImgSrc}" class="class-preview-avatar" alt="Alumno de ${className}">`
+                    : `<div class="class-preview-empty">🎓</div>`;
+
                 card.innerHTML = `
-                    <div class="class-drag-handle" style="position:absolute; top:10px; right:10px; color:var(--text-muted); cursor:grab;">
+                    <div class="class-drag-handle" style="position:absolute; top:10px; right:10px; color:var(--text-muted); cursor:grab;" title="Arrastrar para ordenar">
                         <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
                     </div>
-                    <input type="checkbox" class="class-checkbox" value="${className}" aria-label="Seleccionar ${className}">
-                    <h3>${className}</h3>
-                    <p class="text-muted">${n} alumnos</p>
+                    <div class="class-card-top">
+                        ${avatarHtml}
+                        <div class="class-card-info">
+                            <h3>${className}</h3>
+                            <p class="class-card-count">${n} alumnos</p>
+                        </div>
+                    </div>
+                    <div class="class-card-bottom">
+                        <label class="class-select-label" onclick="event.stopPropagation();">
+                            <input type="checkbox" class="class-checkbox" value="${className}" aria-label="Seleccionar ${className}">
+                            <span>Seleccionar</span>
+                        </label>
+                        <span class="class-card-enter-hint">Entrar →</span>
+                    </div>
                 `;
-                
-                const openBtn = document.createElement('button');
-                openBtn.className = 'btn secondary btn-open-class';
-                openBtn.textContent = 'Abrir →';
-                openBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
+
+                // Clic en la tarjeta abre directamente la clase
+                card.addEventListener('click', (e) => {
+                    const cb = card.querySelector('.class-checkbox');
+                    const drag = card.querySelector('.class-drag-handle');
+                    if (e.target === cb || (drag && drag.contains(e.target))) return;
                     showClassScreen([className]);
                 });
-                card.appendChild(openBtn);
 
                 const checkbox = card.querySelector('.class-checkbox');
-                card.addEventListener('click', (e) => {
-                    if (e.target === checkbox || e.target === openBtn) return;
-                    checkbox.checked = !checkbox.checked;
-                    card.classList.toggle('selected', checkbox.checked);
-                });
                 checkbox.addEventListener('change', () => {
                     card.classList.toggle('selected', checkbox.checked);
                 });
@@ -796,10 +913,29 @@ if(btnConfirmMap) {
 // MP1 FIXED: addEventListener en lugar de onclick inline
 // MP2 FIXED: clases CSS en lugar de estilos inline
 // =========================================================
-async function renderStudents() {
-    dom.studentsList.innerHTML = '';
+// =========================================================
+// RENDERIZAR VISTAS DE ALUMNOS (Orla y Lista Limpias)
+// =========================================================
+function updateViewModeUI() {
+    if (!dom.viewModeOrla || !dom.viewModeList) return;
+    if (state.viewMode === 'orla') {
+        dom.viewModeOrla.classList.add('active');
+        dom.viewModeList.classList.remove('active');
+        dom.studentsOrla.classList.remove('hidden');
+        dom.studentsList.classList.add('hidden');
+    } else {
+        dom.viewModeList.classList.add('active');
+        dom.viewModeOrla.classList.remove('active');
+        dom.studentsList.classList.remove('hidden');
+        dom.studentsOrla.classList.add('hidden');
+    }
+}
 
-    // B6: { ...s } evita mutar el objeto original del estado
+async function renderStudents() {
+    updateViewModeUI();
+    dom.studentsList.innerHTML = '';
+    dom.studentsOrla.innerHTML = '';
+
     const students = [];
     state.currentClasses.forEach(c => {
         if (state.classes[c]) {
@@ -807,27 +943,30 @@ async function renderStudents() {
         }
     });
 
-    // Ordenar combinados alfabéticamente por apellidos
+    // Ordenar por apellidos y nombre
     students.sort((a, b) => {
         const nameA = ((a.apellidos || '') + ' ' + a.nombre).toLowerCase().trim();
         const nameB = ((b.apellidos || '') + ' ' + b.nombre).toLowerCase().trim();
         return nameA.localeCompare(nameB);
     });
 
+    const multiClase = state.currentClasses.length > 1;
+
     for (const student of students) {
+        const photoData = await localforage.getItem(student.id);
+        const fullName = (student.nombre + ' ' + (student.apellidos || '')).trim();
+
+        // 1. Elemento para MODO LISTA
         const li = document.createElement('li');
         li.className = 'student-item';
         li.dataset.id = student.id;
 
-        const photoData = await localforage.getItem(student.id);
-        const photoEl = photoData
+        const listPhotoEl = photoData
             ? `<img src="${photoData}" class="student-photo" alt="Foto de ${student.nombre}">`
             : `<div class="student-photo student-photo-empty">Sin foto</div>`;
 
-        const multiClase = state.currentClasses.length > 1;
-
         li.innerHTML = `
-            <div class="student-drag-handle" aria-hidden="true">
+            <div class="student-drag-handle" aria-hidden="true" title="Arrastrar">
                 <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
                     <line x1="8" y1="6"  x2="21" y2="6"></line>
                     <line x1="8" y1="12" x2="21" y2="12"></line>
@@ -837,49 +976,122 @@ async function renderStudents() {
                     <line x1="3" y1="18" x2="3.01" y2="18"></line>
                 </svg>
             </div>
-            ${photoEl}
+            ${listPhotoEl}
             <div class="student-info">
-                <div class="student-name">${(student.nombre + ' ' + (student.apellidos || '')).trim()}</div>
+                <div class="student-name">${fullName}</div>
+                ${student.aka ? `<span class="detail-aka" style="font-size:0.75rem;">Alias: ${student.aka}</span>` : ''}
                 ${multiClase ? `<div class="student-group-badge">${student._grupoOriginal}</div>` : ''}
             </div>
-            <div class="student-actions">
-                <input type="text" class="aka-input" placeholder="Alias…" value="${student.aka || ''}" aria-label="Alias de ${student.nombre}">
-                <button class="icon-action-btn edit-student-btn"   title="Editar"   aria-label="Editar ${student.nombre}">
-                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                </button>
-                <button class="icon-action-btn delete-student-btn" title="Eliminar" aria-label="Eliminar ${student.nombre}">
-                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                </button>
-            </div>
+            <span class="text-muted" style="font-size: 0.8rem; margin-right: 0.5rem;">Ver ficha →</span>
         `;
 
-        // MP1: Event listeners, no inline onclick
-        li.querySelector('.aka-input').addEventListener('change', (e) => {
-            // B6: modificamos el objeto ORIGINAL en state.classes, no la copia
-            const cls = state.classes[student._grupoOriginal];
-            const orig = cls?.find(s => s.id === student.id);
-            if (orig) {
-                orig.aka = e.target.value.trim();
-                saveState();
-                showAkaSavedFeedback(e.target); // U2
-            }
+        li.addEventListener('click', (e) => {
+            const drag = li.querySelector('.student-drag-handle');
+            if (drag && drag.contains(e.target)) return;
+            openStudentDetail(student, photoData);
         });
 
-        li.querySelector('.edit-student-btn').addEventListener('click', () =>
-            openEditModal(student.id, student._grupoOriginal)
-        );
-        li.querySelector('.delete-student-btn').addEventListener('click', () =>
-            deleteStudent(student.id, student._grupoOriginal)
-        );
-
         dom.studentsList.appendChild(li);
+
+        // 2. Elemento para MODO ORLA
+        const card = document.createElement('div');
+        card.className = 'orla-card';
+        card.dataset.id = student.id;
+
+        const orlaAvatarEl = photoData
+            ? `<img src="${photoData}" class="orla-avatar" alt="${student.nombre}">`
+            : `<div class="orla-avatar-empty">Sin foto</div>`;
+
+        card.innerHTML = `
+            <div class="orla-avatar-container">
+                ${orlaAvatarEl}
+                ${photoData ? `
+                <button class="orla-zoom-btn" title="Ampliar foto" aria-label="Ampliar foto">
+                    <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.5" fill="none"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+                </button>` : ''}
+            </div>
+            <div class="orla-name">${fullName}</div>
+            ${student.aka ? `<div class="orla-aka">${student.aka}</div>` : ''}
+            ${multiClase ? `<div class="student-group-badge">${student._grupoOriginal}</div>` : ''}
+        `;
+
+        // Al hacer clic en el botón de lupa, abre directamente el Lightbox
+        const zoomBtn = card.querySelector('.orla-zoom-btn');
+        if (zoomBtn) {
+            zoomBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openLightbox(photoData, fullName);
+            });
+        }
+
+        // Clic en la tarjeta abre la Ficha del alumno
+        card.addEventListener('click', () => {
+            openStudentDetail(student, photoData);
+        });
+
+        dom.studentsOrla.appendChild(card);
     }
 }
 
-// U2: Feedback visual al guardar alias
-function showAkaSavedFeedback(inputEl) {
-    inputEl.classList.add('aka-saved');
-    setTimeout(() => inputEl.classList.remove('aka-saved'), 1500);
+// =========================================================
+// FICHA DETALLADA DEL ALUMNO (Modal Completo)
+// =========================================================
+function openStudentDetail(student, photoData) {
+    state.selectedStudentId = student.id;
+    state.selectedStudentClass = student._grupoOriginal;
+
+    dom.detailName.textContent = (student.nombre + ' ' + (student.apellidos || '')).trim();
+    dom.detailClass.textContent = student._grupoOriginal || 'Clase';
+    dom.detailAka.textContent = student.aka ? `Alias: "${student.aka}"` : '';
+
+    if (photoData) {
+        dom.detailPhoto.src = photoData;
+        dom.detailPhoto.classList.remove('hidden');
+        dom.detailPhotoEmpty.classList.add('hidden');
+        dom.btnZoomPhoto.classList.remove('hidden');
+    } else {
+        dom.detailPhoto.src = '';
+        dom.detailPhoto.classList.add('hidden');
+        dom.detailPhotoEmpty.classList.remove('hidden');
+        dom.btnZoomPhoto.classList.add('hidden');
+    }
+
+    // Datos del alumno
+    dom.detailTel.textContent = student.telefonos || '—';
+    dom.detailEmail.textContent = student.correoEducacyl || '—';
+    dom.detailNacimiento.textContent = student.fechaNacimiento || '—';
+
+    // Tutores
+    const t1 = student.tutor1 || {};
+    const t2 = student.tutor2 || {};
+    dom.detailTutor1Nombre.textContent = t1.nombre || 'Tutor 1 (No especificado)';
+    dom.detailTutor1Tel.textContent = t1.telefonos || '—';
+    dom.detailTutor1Email.textContent = t1.email || '—';
+
+    dom.detailTutor2Nombre.textContent = t2.nombre || 'Tutor 2 (No especificado)';
+    dom.detailTutor2Tel.textContent = t2.telefonos || '—';
+    dom.detailTutor2Email.textContent = t2.email || '—';
+
+    dom.modalDetail.classList.remove('hidden');
+}
+
+function closeDetailModal() {
+    dom.modalDetail.classList.add('hidden');
+}
+
+// =========================================================
+// LIGHTBOX (Visor de foto ampliada)
+// =========================================================
+function openLightbox(imgSrc, captionText) {
+    if (!imgSrc) return;
+    dom.lightboxImg.src = imgSrc;
+    dom.lightboxCaption.textContent = captionText || '';
+    dom.lightboxModal.classList.remove('hidden');
+}
+
+function closeLightbox() {
+    dom.lightboxModal.classList.add('hidden');
+    dom.lightboxImg.src = '';
 }
 
 // =========================================================
@@ -892,6 +1104,7 @@ async function deleteStudent(studentId, className) {
     await localforage.removeItem(studentId);
     saveState();
     renderStudents();
+    renderClasses();
     showToast('Alumno eliminado.', 'success');
 }
 
@@ -1123,15 +1336,50 @@ async function renderGameCard() {
             .slice(0, 3);
         const options = [...pool, student].sort(() => Math.random() - 0.5);
 
+        // Contenedor de andamiaje / pista (Quizizz style)
+        const hintContainer = document.createElement('div');
+        hintContainer.className = 'quiz-scaffolding-container';
+        
+        const hintBtn = document.createElement('button');
+        hintBtn.className = 'btn-hint';
+        hintBtn.innerHTML = `💡 Pista (descartar 2 opciones)`;
+        hintBtn.title = "Reduce el número de opciones incorrectas";
+
+        const feedbackMsg = document.createElement('div');
+        feedbackMsg.className = 'quiz-feedback-banner hidden';
+
         const grid = document.createElement('div');
         grid.className = 'quiz-options';
 
         let answered = false;
-        let correctBtn = null; // B4: referencia directa al botón correcto
+        let correctBtn = null;
+        let buttonsList = [];
+
+        // Acción de la pista: elimina 2 opciones incorrectas (andamiaje)
+        hintBtn.addEventListener('click', () => {
+            const wrongs = buttonsList.filter(b => b.dataset.studentId !== student.id && !b.classList.contains('disabled'));
+            wrongs.sort(() => Math.random() - 0.5);
+            wrongs.slice(0, 2).forEach(b => {
+                b.classList.add('disabled');
+                b.disabled = true;
+                b.style.opacity = '0.35';
+                b.style.textDecoration = 'line-through';
+            });
+            hintBtn.disabled = true;
+            hintBtn.style.opacity = '0.5';
+            hintBtn.textContent = '💡 Pista aplicada';
+        });
+
+        hintContainer.appendChild(hintBtn);
+        hintContainer.appendChild(feedbackMsg);
+        dom.gameArea.appendChild(hintContainer);
 
         options.forEach((opt, idx) => {
             const btn = document.createElement('button');
             btn.className = 'quiz-btn';
+            btn.dataset.studentId = opt.id;
+            buttonsList.push(btn);
+
             const optName = opt.aka
                 ? `${opt.aka} (${(opt.nombre + ' ' + (opt.apellidos || '')).trim()})`
                 : (opt.nombre + ' ' + (opt.apellidos || '')).trim();
@@ -1143,18 +1391,32 @@ async function renderGameCard() {
             btn.addEventListener('click', () => {
                 if (answered) return;
                 answered = true;
+                hintBtn.disabled = true;
 
                 if (opt.id === student.id) {
                     btn.classList.add('correct');
                     state.score += 10;
-                    setTimeout(() => { state.gameIndex++; renderGameCard(); }, 500);
+                    feedbackMsg.textContent = '🎉 ¡Excelente! Reconociste a tu alumno/a.';
+                    feedbackMsg.className = 'quiz-feedback-banner success';
+                    feedbackMsg.classList.remove('hidden');
+                    setTimeout(() => { state.gameIndex++; renderGameCard(); }, 800);
                 } else {
                     btn.classList.add('wrong');
-                    if (correctBtn) correctBtn.classList.add('correct'); // B4: marcamos por referencia directa
+                    if (correctBtn) correctBtn.classList.add('correct');
+                    feedbackMsg.innerHTML = `💪 ¡Casi! Es <strong>${displayName}</strong>. Repasémoslo luego.`;
+                    feedbackMsg.className = 'quiz-feedback-banner error';
+                    feedbackMsg.classList.remove('hidden');
+
+                    // Añadir a repaso al final si falla (repetición espaciada ligera)
+                    if (!state.gameData.slice(state.gameIndex + 1).some(s => s.id === student.id)) {
+                        state.gameData.push(student);
+                        dom.gameProgress.textContent = `${state.gameIndex + 1} / ${state.gameData.length}`;
+                    }
+
                     if (state.currentGameMode === 'timeattack') {
                         state.timeLeft = Math.max(0, state.timeLeft - 3);
                     }
-                    setTimeout(() => { state.gameIndex++; renderGameCard(); }, 1500);
+                    setTimeout(() => { state.gameIndex++; renderGameCard(); }, 1800);
                 }
             });
             grid.appendChild(btn);

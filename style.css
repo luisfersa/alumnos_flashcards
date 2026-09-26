@@ -158,20 +158,38 @@ h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; }
 .text-muted { color: var(--text-muted); font-size: 0.9rem; }
 
 /* =========================================================
-   THEME SELECTOR
+   THEME SWITCHER (Iconos modernos)
    ========================================================= */
-.theme-selector {
-    padding: 0.5rem 0.75rem;
-    border-radius: 8px;
+.theme-switcher {
+    display: inline-flex;
+    align-items: center;
     background: var(--card-bg);
-    color: var(--text-color);
     border: 1px solid var(--card-border);
-    font-family: inherit;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: border-color 0.2s;
+    border-radius: 20px;
+    padding: 3px;
+    gap: 2px;
 }
-.theme-selector:focus { outline: none; border-color: var(--primary); }
+
+.theme-icon-btn {
+    background: transparent;
+    border: none;
+    font-size: 1rem;
+    padding: 0.35rem 0.5rem;
+    border-radius: 16px;
+    cursor: pointer;
+    line-height: 1;
+    transition: transform 0.15s, background 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.theme-icon-btn:hover {
+    transform: scale(1.15);
+}
+.theme-icon-btn.active {
+    background: var(--primary);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
 
 /* =========================================================
    BUTTONS
@@ -261,19 +279,43 @@ h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; }
 .edit-student-btn:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
 
 /* =========================================================
-   HOME SCREEN
+   HOME SCREEN - COMPACT EXCEL & RESPONSIVE ACTIONS
    ========================================================= */
-.upload-section {
+.upload-section-compact {
     background: var(--card-bg);
-    border: 1px dashed var(--card-border);
+    border: 1px solid var(--card-border);
     border-radius: 10px;
-    padding: 1.5rem;
-    text-align: center;
-    margin-bottom: 2rem;
+    padding: 0.85rem 1.25rem;
+    margin-bottom: 1.75rem;
     display: flex;
-    flex-direction: column;
+    justify-content: space-between;
     align-items: center;
-    gap: 0.75rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.upload-compact-info {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.upload-compact-icon {
+    font-size: 1.6rem;
+    line-height: 1;
+}
+
+.upload-compact-hint {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.btn-compact-upload {
+    padding: 0.45rem 0.9rem;
+    font-size: 0.85rem;
+    cursor: pointer;
 }
 
 /* MP3: was inline style, now a CSS class */
@@ -290,73 +332,168 @@ h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; }
     display: flex;
     gap: 0.5rem;
     flex-wrap: wrap;
+    align-items: center;
+}
+
+@media (max-width: 640px) {
+    #header-actions {
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        justify-content: flex-end;
+    }
+    .classes-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+    .classes-actions {
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.4rem;
+    }
+    .classes-actions button {
+        width: 100%;
+        font-size: 0.82rem;
+        padding: 0.5rem 0.4rem;
+    }
 }
 
 .classes-grid {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
-    margin-top: 1rem;
+    gap: 1rem;
+    margin-top: 0.5rem;
 }
 
 .class-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 1rem;
+    gap: 0.75rem;
     min-height: 140px;
     border-radius: 12px;
     border: 2px dashed transparent;
     transition: all 0.2s;
-    padding: 0.5rem;
+    padding: 0.4rem;
     background: rgba(0,0,0,0.02);
 }
 
 body.is-dragging .class-row {
-    border-color: var(--border-color);
+    border-color: var(--card-border);
     background: color-mix(in srgb, var(--card-bg) 40%, transparent);
 }
 
-
+/* Tarjetas de clase más grandes, menos separación, clic completo */
 .class-card {
-    min-width: 200px; max-width: 250px; flex: 1 1 auto;
+    min-width: 240px;
+    max-width: 320px;
+    flex: 1 1 240px;
     background: var(--card-bg);
     border: 1px solid var(--card-border);
-    border-radius: 10px;
-    padding: 1.25rem;
-    cursor: default;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    border-radius: 12px;
+    padding: 1.15rem;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: 0.6rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.04);
+}
+.class-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(0,0,0,0.08);
 }
 .class-card.selected {
     border-color: var(--primary);
     box-shadow: 0 0 0 2px var(--primary);
 }
 
+.class-card-top {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.class-preview-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--primary);
+    background: var(--secondary);
+    flex-shrink: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+.class-preview-empty {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--secondary);
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.class-card-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.class-card h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.class-card-count {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.class-card-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+    padding-top: 0.4rem;
+    border-top: 1px solid var(--card-border);
+}
+
+.class-select-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+.class-select-label:hover {
+    color: var(--text-color);
+}
+
 .class-checkbox {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    width: 18px;
-    height: 18px;
+    width: 17px;
+    height: 17px;
     cursor: pointer;
     accent-color: var(--primary);
 }
 
-.class-card h3 {
-    padding-left: 1.5rem;
-    font-size: 1rem;
-    margin-bottom: 0.25rem;
-}
-
-/* U4: Explicit "Abrir" button instead of full-card click */
-.btn-open-class {
-    margin-top: 0.5rem;
+.class-card-enter-hint {
     font-size: 0.8rem;
-    padding: 0.4rem 0.8rem;
-    align-self: flex-start;
+    font-weight: 600;
+    color: var(--primary);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
 }
 
 /* =========================================================
@@ -426,7 +563,43 @@ body.is-dragging .class-row {
 }
 
 /* =========================================================
-   STUDENTS LIST
+   STUDENTS SECTION HEADER & VIEW MODES
+   ========================================================= */
+.students-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.view-mode-toggle {
+    display: inline-flex;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 2px;
+    gap: 2px;
+}
+
+.view-toggle-btn {
+    width: auto;
+    height: 32px;
+    padding: 0 0.6rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    gap: 0.35rem;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-muted);
+}
+.view-toggle-btn.active {
+    background: var(--primary);
+    color: #fff;
+}
+
+/* =========================================================
+   STUDENTS LIST (Modo Lista)
    ========================================================= */
 .students-list {
     list-style: none;
@@ -442,11 +615,16 @@ body.is-dragging .class-row {
     gap: 0.75rem;
     background: var(--card-bg);
     border: 1px solid var(--card-border);
-    padding: 0.75rem;
-    border-radius: 8px;
-    transition: border-color 0.15s;
+    padding: 0.65rem 0.85rem;
+    border-radius: 10px;
+    transition: all 0.15s;
+    cursor: pointer;
 }
-.student-item:hover { border-color: var(--primary); }
+.student-item:hover {
+    border-color: var(--primary);
+    transform: translateX(2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
 
 .student-drag-handle {
     color: var(--text-muted);
@@ -459,9 +637,10 @@ body.is-dragging .class-row {
 .student-photo {
     width: 48px;
     height: 48px;
-    border-radius: 6px;
+    border-radius: 8px;
     object-fit: cover;
     flex-shrink: 0;
+    border: 1px solid var(--card-border);
 }
 
 .student-photo-empty {
@@ -487,7 +666,6 @@ body.is-dragging .class-row {
     text-overflow: ellipsis;
 }
 
-/* MP2: was inline style, now CSS class */
 .student-group-badge {
     font-size: 0.7rem;
     color: var(--primary);
@@ -498,12 +676,380 @@ body.is-dragging .class-row {
     text-overflow: ellipsis;
 }
 
-/* MP2: student actions container */
-.student-actions {
+/* =========================================================
+   STUDENTS ORLA (Modo Cuadrícula / Orla Escolar)
+   ========================================================= */
+.students-orla {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 0.85rem;
+    margin-top: 0.5rem;
+}
+
+.orla-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 0.75rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+    position: relative;
+}
+.orla-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--primary);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.orla-avatar-container {
+    position: relative;
+    width: 76px;
+    height: 76px;
+    margin-bottom: 0.5rem;
+}
+
+.orla-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 10px;
+    object-fit: cover;
+    border: 2px solid var(--card-border);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.orla-avatar-empty {
+    width: 100%;
+    height: 100%;
+    border-radius: 10px;
+    background: var(--secondary);
+    color: var(--text-muted);
     display: flex;
     align-items: center;
-    gap: 0.4rem;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: 1px dashed var(--card-border);
+}
+
+.orla-zoom-btn {
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    opacity: 0.85;
+    transition: opacity 0.15s, transform 0.15s;
+}
+.orla-zoom-btn:hover {
+    opacity: 1;
+    transform: scale(1.15);
+    color: var(--primary);
+}
+
+.orla-name {
+    font-weight: 600;
+    font-size: 0.85rem;
+    line-height: 1.25;
+    margin-bottom: 0.2rem;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.orla-aka {
+    font-size: 0.72rem;
+    color: var(--primary);
+    font-weight: 600;
+}
+
+/* =========================================================
+   FICHA DE ALUMNO (Modal Detalle Completo)
+   ========================================================= */
+.student-detail-modal {
+    max-width: 520px;
+    width: 95%;
+    padding: 1.75rem;
+    border-radius: 16px;
+}
+
+.detail-header {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--card-border);
+    position: relative;
+}
+
+.detail-avatar-container {
+    position: relative;
+    width: 80px;
+    height: 80px;
     flex-shrink: 0;
+}
+
+.detail-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 14px;
+    object-fit: cover;
+    border: 2px solid var(--primary);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.detail-avatar-empty {
+    width: 100%;
+    height: 100%;
+    border-radius: 14px;
+    background: var(--secondary);
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+}
+
+.btn-zoom-trigger {
+    position: absolute;
+    bottom: -6px;
+    right: -6px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    color: var(--text-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+.btn-zoom-trigger:hover {
+    color: var(--primary);
+    transform: scale(1.1);
+}
+
+.detail-titles {
+    flex: 1;
+    min-width: 0;
+}
+
+.badge-class {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--primary) 15%, transparent);
+    color: var(--primary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+}
+
+.detail-header h2 {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.detail-aka {
+    margin: 0.2rem 0 0;
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.detail-body {
+    padding: 1.25rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    max-height: 55vh;
+    overflow-y: auto;
+}
+
+.detail-section h4 {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 0.6rem;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.45rem 0;
+    font-size: 0.9rem;
+    border-bottom: 1px dashed color-mix(in srgb, var(--card-border) 60%, transparent);
+}
+.detail-label { color: var(--text-muted); }
+.detail-value { font-weight: 500; }
+
+.tutor-card {
+    background: color-mix(in srgb, var(--card-bg) 60%, var(--secondary));
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 0.75rem;
+    margin-top: 0.5rem;
+}
+.tutor-card strong {
+    display: block;
+    font-size: 0.92rem;
+    margin-bottom: 0.35rem;
+    color: var(--text-color);
+}
+
+.detail-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--card-border);
+}
+
+/* =========================================================
+   LIGHTBOX FOTO GRANDE
+   ========================================================= */
+.lightbox-overlay {
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(4px);
+    z-index: 9999;
+}
+
+.lightbox-content {
+    position: relative;
+    max-width: 90vw;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.lightbox-content img {
+    max-width: 100%;
+    max-height: 75vh;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    object-fit: contain;
+}
+
+.lightbox-caption {
+    color: #fff;
+    margin-top: 0.75rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.lightbox-close {
+    position: absolute;
+    top: -40px;
+    right: 0;
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 2rem;
+    cursor: pointer;
+    line-height: 1;
+}
+
+/* =========================================================
+   FORMULARIO MODERNO (Añadir Alumno UI/UX)
+   ========================================================= */
+.modal-modern-form {
+    max-width: 500px;
+    width: 95%;
+    padding: 1.75rem;
+    border-radius: 16px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-icon-badge {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--primary) 15%, transparent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+}
+
+.form-row-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+.form-control-modern {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    border-radius: 8px;
+    border: 1px solid var(--card-border);
+    background: var(--input-bg);
+    color: var(--text-color);
+    font-family: inherit;
+    font-size: 0.9rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.form-control-modern:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+.file-control {
+    padding: 0.4rem;
+    font-size: 0.8rem;
+}
+
+.form-collapsible-section {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--card-border);
+}
+
+.form-section-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.75rem;
+}
+
+.tutor-form-box {
+    background: color-mix(in srgb, var(--card-bg) 70%, var(--secondary));
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.tutor-box-title {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--primary);
+    margin-bottom: 0.5rem;
 }
 
 .aka-input {
@@ -662,6 +1208,54 @@ body.is-dragging .class-row {
     opacity: 0.5;
     display: block;
     margin-bottom: 2px;
+}
+
+/* Quizizz scaffolding & feedback */
+.quiz-scaffolding-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+    width: 100%;
+    max-width: 480px;
+}
+
+.btn-hint {
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
+    border: 1px dashed var(--primary);
+    color: var(--primary);
+    padding: 0.4rem 0.9rem;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-hint:hover:not(:disabled) {
+    background: var(--primary);
+    color: #fff;
+    transform: scale(1.04);
+}
+
+.quiz-feedback-banner {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-align: center;
+    width: 100%;
+    animation: fadeIn 0.2s ease;
+}
+.quiz-feedback-banner.success {
+    background: color-mix(in srgb, var(--success) 15%, transparent);
+    color: var(--success);
+    border: 1px solid var(--success);
+}
+.quiz-feedback-banner.error {
+    background: color-mix(in srgb, var(--danger) 15%, transparent);
+    color: var(--danger);
+    border: 1px solid var(--danger);
 }
 
 /* Typing mode */
@@ -1032,4 +1626,51 @@ body.is-dragging .class-row {
     color: var(--text-dark);
     border-bottom: 2px solid var(--border-color);
     padding-bottom: 0.5rem;
+}
+
+/* =========================================================
+   RESPONSIVE GLOBAL OPTIMIZATIONS (Móvil & Tablet)
+   ========================================================= */
+@media (max-width: 768px) {
+    body {
+        padding: 0.5rem;
+    }
+    .app-container {
+        padding: 1rem;
+        border-radius: 8px;
+    }
+    header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+        margin-bottom: 1.25rem;
+    }
+    #header-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+    .upload-section-compact {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 1rem;
+    }
+    .btn-compact-upload {
+        width: 100%;
+    }
+    .students-orla {
+        grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
+        gap: 0.5rem;
+    }
+    .orla-avatar-container {
+        width: 64px;
+        height: 64px;
+    }
+    .student-detail-modal {
+        padding: 1.25rem;
+    }
+    .detail-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
 }

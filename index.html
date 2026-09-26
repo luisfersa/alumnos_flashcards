@@ -151,6 +151,7 @@
                         <button class="btn game-btn" data-mode="reverse" title="Nombre y 4 fotos para elegir la cara correcta">📸 Quiz Caras</button>
                         <button class="btn game-btn" data-mode="class_quiz" title="¿A qué clase pertenece este alumno?">🏫 Quiz Clases</button>
                         <button class="btn game-btn" data-mode="typing" title="Escribir el nombre del alumno">✍️ Escritura</button>
+                        <button class="btn game-btn" data-mode="gender_classify" title="Clasificar rápidamente por sexo con fotos y 3 opciones" style="border-color: #ec4899; color: #ec4899;">🚻 Clasificar Sexo</button>
                     </div>
                 </div>
 
@@ -187,7 +188,10 @@
                             </button>
                         </div>
                         <div class="detail-titles">
-                            <span id="detail-student-class" class="badge-class">Clase</span>
+                            <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
+                                <span id="detail-student-class" class="badge-class">Clase</span>
+                                <span id="detail-student-gender" class="badge-gender hidden"></span>
+                            </div>
                             <h2 id="detail-student-name">Nombre Alumno</h2>
                             <p id="detail-student-aka" class="detail-aka"></p>
                         </div>
@@ -323,6 +327,26 @@
                                     <label class="form-label" for="edit-fecha-nacimiento">Fecha de Nacimiento</label>
                                     <input type="text" id="edit-fecha-nacimiento" class="form-control-modern" placeholder="DD/MM/YYYY" autocomplete="off">
                                 </div>
+                            </div>
+
+                            <!-- Selector de Sexo/Género (Radio buttons estilizados) -->
+                            <div class="form-group" style="margin-top: 0.75rem;">
+                                <label class="form-label">Sexo / Género (para agrupar opciones de juegos)</label>
+                                <div class="gender-radio-group" role="radiogroup" aria-label="Sexo del alumno">
+                                    <label class="gender-radio-option">
+                                        <input type="radio" name="edit-sexo" value="M" id="sexo-m">
+                                        <span class="gender-radio-custom">👦 Chico</span>
+                                    </label>
+                                    <label class="gender-radio-option">
+                                        <input type="radio" name="edit-sexo" value="F" id="sexo-f">
+                                        <span class="gender-radio-custom">👧 Chica</span>
+                                    </label>
+                                    <label class="gender-radio-option">
+                                        <input type="radio" name="edit-sexo" value="" id="sexo-none" checked>
+                                        <span class="gender-radio-custom">⚪ Sin especificar</span>
+                                    </label>
+                                </div>
+                            </div>
                             </div>
                         </div>
 

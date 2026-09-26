@@ -107,6 +107,7 @@ const dom = {
     detailName:          document.getElementById('detail-student-name'),
     detailAka:           document.getElementById('detail-student-aka'),
     detailClass:         document.getElementById('detail-student-class'),
+    detailStudentGender: document.getElementById('detail-student-gender'),
     detailTel:           document.getElementById('detail-tel'),
     detailEmail:         document.getElementById('detail-email'),
     detailNacimiento:    document.getElementById('detail-nacimiento'),
@@ -517,6 +518,16 @@ function processExcelData(rows) {
         const grupo = getCol(['grupo', 'clase', 'curso']) || 'Sin Grupo';
         
         // Datos extraídos para futuras funcionalidades (agenda, etc.)
+        const rawSexo = getCol(['sexo', 'género', 'genero']);
+        let sexo = '';
+        if (rawSexo) {
+            const sLower = rawSexo.toLowerCase().trim();
+            if (sLower.startsWith('m') || sLower.startsWith('h') || sLower.includes('chico') || sLower.includes('masc')) {
+                sexo = 'M';
+            } else if (sLower.startsWith('f') || sLower.startsWith('m') && sLower.includes('muj') || sLower.includes('chica') || sLower.includes('fem')) {
+                sexo = 'F';
+            }
+        }
         const rawFechaNacimiento = getCol(['fecha nacimiento', 'nacimiento', 'fecha_nac']);
         const fechaNacimiento = formatExcelDate(rawFechaNacimiento);
         const paisNacimiento = getCol(['pais nacimiento', 'país']);
@@ -592,6 +603,7 @@ function processExcelData(rows) {
             id: generateSafeId(), // B5: UUID seguro (con fallback para file://)
             nombre: nombre,
             apellidos: apellidos,
+            sexo: sexo,
             fechaNacimiento: fechaNacimiento,
             paisNacimiento: paisNacimiento,
             correoEducacyl: correoEducacyl,
@@ -1111,6 +1123,19 @@ function openStudentDetail(student, photoData) {
     dom.detailClass.textContent = student._grupoOriginal || 'Clase';
     dom.detailAka.textContent = student.aka ? `Alias: "${student.aka}"` : '';
 
+    if (dom.detailStudentGender) {
+        if (student.sexo === 'M') {
+            dom.detailStudentGender.textContent = '👦 Chico';
+            dom.detailStudentGender.className = 'badge-gender m';
+        } else if (student.sexo === 'F') {
+            dom.detailStudentGender.textContent = '👧 Chica';
+            dom.detailStudentGender.className = 'badge-gender f';
+        } else {
+            dom.detailStudentGender.textContent = '';
+            dom.detailStudentGender.className = 'badge-gender hidden';
+        }
+    }
+
     if (photoData) {
         dom.detailPhoto.src = photoData;
         dom.detailPhoto.classList.remove('hidden');
@@ -1240,6 +1265,16 @@ function openStudentModal(studentId = null, defaultClass = null) {
         dom.editTelefono.value         = student.telefonos || '';
         dom.editEmail.value            = student.correoEducacyl || '';
 
+        // Sexo / Género
+        const sexoVal = student.sexo || '';
+        const radioToCheck = document.querySelector(`input[name="edit-sexo"][value="${sexoVal}"]`);
+        if (radioToCheck) {
+            radioToCheck.checked = true;
+        } else {
+            const radioNone = document.getElementById('sexo-none');
+            if (radioNone) radioNone.checked = true;
+        }
+
         // Tutores
         const t1 = student.tutor1 || {};
         const t2 = student.tutor2 || {};
@@ -1292,6 +1327,8 @@ async function handleEditSubmit(e) {
     let targetClass = null;
     let student = null;
 
+    const sexo = document.querySelector('input[name="edit-sexo"]:checked')?.value || '';
+
     if (isNew) {
         targetClass = dom.editClase ? dom.editClase.value : state.currentClasses[0];
         if (!targetClass) {
@@ -1308,6 +1345,7 @@ async function handleEditSubmit(e) {
             id: generateSafeId(),
             nombre,
             apellidos,
+            sexo,
             aka: dom.editAka.value.trim(),
             fechaNacimiento: dom.editFechaNacimiento.value.trim(),
             telefonos: dom.editTelefono.value.trim(),
@@ -1339,6 +1377,7 @@ async function handleEditSubmit(e) {
 
         student.nombre           = nombre;
         student.apellidos        = apellidos;
+        student.sexo             = sexo;
         student.aka              = dom.editAka.value.trim();
         student.fechaNacimiento  = dom.editFechaNacimiento.value.trim();
         student.telefonos        = dom.editTelefono.value.trim();
@@ -1548,10 +1587,18 @@ async function renderGameCard() {
         dom.gameArea.appendChild(img);
 
         const allStudents = getAllGameStudents();
-        const pool = allStudents
-            .filter(s => s.id !== student.id)
-            .sort(() => Math.random() - 0.5)
-            .slice(0, 3);
+        let pool = [];
+        if (student.sexo) {
+            const sameGender = allStudents.filter(s => s.id !== student.id && s.sexo === student.sexo);
+            pool = sameGender.sort(() => Math.random() - 0.5).slice(0, 3);
+        }
+        if (pool.length < 3) {
+            const poolIds = new Set(pool.map(p => p.id));
+            const remaining = allStudents
+                .filter(s => s.id !== student.id && !poolIds.has(s.id))
+                .sort(() => Math.random() - 0.5);
+            pool = [...pool, ...remaining.slice(0, 3 - pool.length)];
+        }
         const options = [...pool, student].sort(() => Math.random() - 0.5);
 
         // Contenedor de andamiaje / pista (Quizizz style)
@@ -1656,10 +1703,18 @@ async function renderGameCard() {
         dom.gameArea.appendChild(feedbackMsg);
 
         const allStudents = getAllGameStudents();
-        const pool = allStudents
-            .filter(s => s.id !== student.id)
-            .sort(() => Math.random() - 0.5)
-            .slice(0, 3);
+        let pool = [];
+        if (student.sexo) {
+            const sameGender = allStudents.filter(s => s.id !== student.id && s.sexo === student.sexo);
+            pool = sameGender.sort(() => Math.random() - 0.5).slice(0, 3);
+        }
+        if (pool.length < 3) {
+            const poolIds = new Set(pool.map(p => p.id));
+            const remaining = allStudents
+                .filter(s => s.id !== student.id && !poolIds.has(s.id))
+                .sort(() => Math.random() - 0.5);
+            pool = [...pool, ...remaining.slice(0, 3 - pool.length)];
+        }
         const options = [...pool, student].sort(() => Math.random() - 0.5);
 
         const photosGrid = document.createElement('div');
@@ -1840,12 +1895,120 @@ async function renderGameCard() {
 
         dom.gameArea.appendChild(form);
         setTimeout(() => input.focus(), 80);
+
+    // --- MODO CLASIFICAR SEXO (Rápido estilo Clásico con foto + 3 opciones) ---
+    } else if (state.currentGameMode === 'gender_classify') {
+        const card = document.createElement('div');
+        card.className = 'gender-classifier-card';
+
+        const photoWrap = document.createElement('div');
+        photoWrap.className = 'gender-card-photo-wrap';
+        if (imgSrc) {
+            photoWrap.innerHTML = `<img src="${imgSrc}" class="gender-card-photo" alt="Foto de ${displayName}">`;
+        } else {
+            photoWrap.innerHTML = `<div class="gender-card-empty-photo">👤</div>`;
+        }
+        card.appendChild(photoWrap);
+
+        const nameEl = document.createElement('h2');
+        nameEl.className = 'gender-card-name';
+        nameEl.textContent = realName;
+        card.appendChild(nameEl);
+
+        if (student.aka) {
+            const akaEl = document.createElement('div');
+            akaEl.className = 'gender-card-aka';
+            akaEl.textContent = `Alias: "${student.aka}"`;
+            card.appendChild(akaEl);
+        }
+
+        const actionsGrid = document.createElement('div');
+        actionsGrid.className = 'gender-quick-actions';
+
+        const btnBoy = document.createElement('button');
+        btnBoy.className = `btn-gender-quick boy ${student.sexo === 'M' ? 'active' : ''}`;
+        btnBoy.innerHTML = `<span>👦 Chico</span> <small style="opacity:0.75; font-size:0.8rem;">[1]</small>`;
+        btnBoy.id = 'btn-gender-m';
+
+        const btnGirl = document.createElement('button');
+        btnGirl.className = `btn-gender-quick girl ${student.sexo === 'F' ? 'active' : ''}`;
+        btnGirl.innerHTML = `<span>👧 Chica</span> <small style="opacity:0.75; font-size:0.8rem;">[2]</small>`;
+        btnGirl.id = 'btn-gender-f';
+
+        const assignGender = (genderVal) => {
+            student.sexo = genderVal;
+            saveState();
+            // Avanzar al siguiente
+            state.gameIndex++;
+            renderGameCard();
+        };
+
+        btnBoy.addEventListener('click', () => assignGender('M'));
+        btnGirl.addEventListener('click', () => assignGender('F'));
+
+        actionsGrid.appendChild(btnBoy);
+        actionsGrid.appendChild(btnGirl);
+        card.appendChild(actionsGrid);
+
+        const btnSkip = document.createElement('button');
+        btnSkip.className = 'btn-gender-skip';
+        btnSkip.innerHTML = `⚪ Sin especificar / Saltar <small style="opacity:0.75;">[3]</small>`;
+        btnSkip.id = 'btn-gender-skip';
+        btnSkip.addEventListener('click', () => assignGender(''));
+        card.appendChild(btnSkip);
+
+        // Barra inferior de navegación
+        const navBar = document.createElement('div');
+        navBar.className = 'gender-nav-bar';
+
+        const prevBtn = document.createElement('button');
+        prevBtn.className = 'btn secondary small';
+        prevBtn.textContent = '← Anterior';
+        prevBtn.disabled = state.gameIndex === 0;
+        prevBtn.addEventListener('click', () => {
+            if (state.gameIndex > 0) {
+                state.gameIndex--;
+                renderGameCard();
+            }
+        });
+
+        const statusText = document.createElement('span');
+        statusText.style.fontSize = '0.85rem';
+        statusText.style.color = 'var(--text-muted)';
+        statusText.style.alignSelf = 'center';
+        statusText.textContent = student.sexo === 'M' ? 'Actual: Chico' : student.sexo === 'F' ? 'Actual: Chica' : 'Sin clasificar';
+
+        navBar.appendChild(prevBtn);
+        navBar.appendChild(statusText);
+        card.appendChild(navBar);
+
+        dom.gameArea.appendChild(card);
     }
 }
 
 // U7: Atajos de teclado en el juego
 function handleKeyboardShortcuts(e) {
     if (screens.game.classList.contains('hidden')) return;
+
+    // Clasificar Sexo: teclas 1 (Chico), 2 (Chica), 3 (Saltar)
+    if (state.currentGameMode === 'gender_classify') {
+        if (e.key === '1') {
+            const btn = document.getElementById('btn-gender-m');
+            if (btn) btn.click();
+        } else if (e.key === '2') {
+            const btn = document.getElementById('btn-gender-f');
+            if (btn) btn.click();
+        } else if (e.key === '3') {
+            const btn = document.getElementById('btn-gender-skip');
+            if (btn) btn.click();
+        } else if (e.key === 'ArrowLeft') {
+            if (state.gameIndex > 0) {
+                state.gameIndex--;
+                renderGameCard();
+            }
+        }
+        return;
+    }
 
     // Quiz / Contrarreloj / Quiz Clases: teclas 1-4
     if (state.currentGameMode === 'quiz' || state.currentGameMode === 'timeattack' || state.currentGameMode === 'class_quiz') {

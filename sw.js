@@ -1,7 +1,7 @@
-// Service Worker — Mis Alumnos PWA
+// Service Worker — alumnosLFS PWA
 // Caches app shell for offline use. Student data (localforage/localStorage) is always available offline.
 
-const CACHE_NAME = 'mis-alumnos-v1';
+const CACHE_NAME = 'alumnoslfs-v2';
 const ASSETS = [
   './',
   './index.html',

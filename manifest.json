@@ -1,6 +1,6 @@
 {
-  "name": "Mis Alumnos — Flashcards Docente",
-  "short_name": "Mis Alumnos",
+  "name": "alumnosLFS — Flashcards Docente",
+  "short_name": "alumnosLFS",
   "description": "Gestión de alumnos con fotos, agenda de contactos y juegos de memorización para docentes.",
   "start_url": "./index.html",
   "display": "standalone",

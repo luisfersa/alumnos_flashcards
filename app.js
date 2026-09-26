@@ -77,6 +77,16 @@ const dom = {
     editAka:             document.getElementById('edit-aka'),
     editPhoto:           document.getElementById('edit-photo'),
     editPhotoPreview:    document.getElementById('edit-photo-preview'),  // U5
+    editPhotoPlaceholder:document.getElementById('edit-photo-placeholder'),
+    editFechaNacimiento: document.getElementById('edit-fecha-nacimiento'),
+    editTelefono:        document.getElementById('edit-telefono'),
+    editEmail:           document.getElementById('edit-email'),
+    editTutor1Nombre:    document.getElementById('edit-tutor1-nombre'),
+    editTutor1Tel:       document.getElementById('edit-tutor1-tel'),
+    editTutor1Email:     document.getElementById('edit-tutor1-email'),
+    editTutor2Nombre:    document.getElementById('edit-tutor2-nombre'),
+    editTutor2Tel:       document.getElementById('edit-tutor2-tel'),
+    editTutor2Email:     document.getElementById('edit-tutor2-email'),
     confirmOverlay:      document.getElementById('confirm-overlay'),
     confirmMessage:      document.getElementById('confirm-message'),
     confirmYes:          document.getElementById('confirm-yes'),
@@ -165,19 +175,37 @@ function saveState() {
 // INICIALIZACIÓN
 // =========================================================
 function init() {
-    // Tema con iconos
-    document.documentElement.setAttribute('data-theme', state.theme);
-    const themeButtons = document.querySelectorAll('.theme-icon-btn');
-    themeButtons.forEach(btn => {
-        if (btn.dataset.theme === state.theme) btn.classList.add('active');
-        btn.addEventListener('click', () => {
-            state.theme = btn.dataset.theme;
+    // Lista de temas disponibles y sus iconos/etiquetas
+    const themes = [
+        { id: 'dark', icon: '🌙', label: 'Oscuro' },
+        { id: 'light', icon: '☀️', label: 'Claro' },
+        { id: 'solarized-dark', icon: '🌲', label: 'Bosque' },
+        { id: 'solarized-light', icon: '🌾', label: 'Solar' }
+    ];
+
+    const btnToggleTheme = document.getElementById('btn-toggle-theme');
+    const themeIcon = document.getElementById('theme-toggle-icon');
+    const themeLabel = document.getElementById('theme-toggle-label');
+
+    const updateThemeUI = (themeId) => {
+        document.documentElement.setAttribute('data-theme', themeId);
+        const current = themes.find(t => t.id === themeId) || themes[0];
+        if (themeIcon) themeIcon.textContent = current.icon;
+        if (themeLabel) themeLabel.textContent = current.label;
+        if (btnToggleTheme) btnToggleTheme.title = `Tema actual: ${current.label} (Clic para cambiar)`;
+    };
+
+    updateThemeUI(state.theme);
+
+    if (btnToggleTheme) {
+        btnToggleTheme.addEventListener('click', () => {
+            const currentIndex = themes.findIndex(t => t.id === state.theme);
+            const nextIndex = (currentIndex + 1) % themes.length;
+            state.theme = themes[nextIndex].id;
             try { localStorage.setItem('flashcards_theme', state.theme); } catch(err) {}
-            document.documentElement.setAttribute('data-theme', state.theme);
-            themeButtons.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
+            updateThemeUI(state.theme);
         });
-    });
+    }
 
     // Control de vista Orla / Lista
     if (dom.viewModeOrla && dom.viewModeList) {
@@ -300,7 +328,7 @@ function init() {
     dom.cancelEditBtn.addEventListener('click', closeEditModal);
     dom.editForm.addEventListener('submit', handleEditSubmit);
 
-    // U5: Preview de foto al seleccionarla en el modal
+    // Preview de foto al seleccionarla en el modal
     dom.editPhoto.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -308,6 +336,7 @@ function init() {
             reader.onload = (evt) => {
                 dom.editPhotoPreview.src = evt.target.result;
                 dom.editPhotoPreview.classList.remove('hidden');
+                if (dom.editPhotoPlaceholder) dom.editPhotoPlaceholder.classList.add('hidden');
             };
             reader.readAsDataURL(file);
         }
@@ -401,6 +430,37 @@ function getAllGameStudents() {
     return students;
 }
 
+function formatExcelDate(val) {
+    if (!val) return '';
+    const strVal = String(val).trim();
+    // Si ya viene formateada como fecha con barras o guiones (ej. 15/04/2012 o 2012-04-15)
+    if (strVal.includes('/') || strVal.includes('-')) {
+        return strVal;
+    }
+    // Si es un número de serie de Excel (días desde 1899-12-30)
+    const num = Number(strVal);
+    if (!isNaN(num) && num > 1000 && num < 100000) {
+        if (typeof XLSX !== 'undefined' && XLSX.SSF && XLSX.SSF.parse_date_code) {
+            const parsed = XLSX.SSF.parse_date_code(num);
+            if (parsed && parsed.y && parsed.m && parsed.d) {
+                const d = String(parsed.d).padStart(2, '0');
+                const m = String(parsed.m).padStart(2, '0');
+                return `${d}/${m}/${parsed.y}`;
+            }
+        }
+        // Fallback cálculo manual epoch Excel (1899-12-30)
+        const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+        const targetDate = new Date(excelEpoch.getTime() + num * 86400000);
+        if (!isNaN(targetDate.getTime())) {
+            const d = String(targetDate.getUTCDate()).padStart(2, '0');
+            const m = String(targetDate.getUTCMonth() + 1).padStart(2, '0');
+            const y = targetDate.getUTCFullYear();
+            return `${d}/${m}/${y}`;
+        }
+    }
+    return strVal;
+}
+
 // =========================================================
 // EXCEL
 // =========================================================
@@ -451,7 +511,8 @@ function processExcelData(rows) {
         const grupo = getCol(['grupo', 'clase', 'curso']) || 'Sin Grupo';
         
         // Datos extraídos para futuras funcionalidades (agenda, etc.)
-        const fechaNacimiento = getCol(['fecha nacimiento', 'nacimiento']);
+        const rawFechaNacimiento = getCol(['fecha nacimiento', 'nacimiento', 'fecha_nac']);
+        const fechaNacimiento = formatExcelDate(rawFechaNacimiento);
         const paisNacimiento = getCol(['pais nacimiento', 'país']);
         const correoEducacyl = getCol(['usuario o correo educacyl', 'correo', 'email']);
         const telefonosAlumno = getCol(['telefonos', 'teléfono', 'telefono']);
@@ -1059,7 +1120,7 @@ function openStudentDetail(student, photoData) {
     // Datos del alumno
     dom.detailTel.textContent = student.telefonos || '—';
     dom.detailEmail.textContent = student.correoEducacyl || '—';
-    dom.detailNacimiento.textContent = student.fechaNacimiento || '—';
+    dom.detailNacimiento.textContent = formatExcelDate(student.fechaNacimiento) || '—';
 
     // Tutores
     const t1 = student.tutor1 || {};
@@ -1112,18 +1173,36 @@ function openEditModal(studentId, className) {
     const student = state.classes[className]?.find(s => s.id === studentId);
     if (!student) return;
 
-    dom.editStudentId.value  = student.id;
-    dom.editNombre.value     = student.nombre;
-    dom.editApellidos.value  = student.apellidos;
-    dom.editAka.value        = student.aka || '';
-    dom.editPhoto.value      = '';
-    dom.editPhotoPreview.classList.add('hidden');
+    dom.editStudentId.value        = student.id;
+    dom.editNombre.value           = student.nombre || '';
+    dom.editApellidos.value        = student.apellidos || '';
+    dom.editAka.value              = student.aka || '';
+    dom.editFechaNacimiento.value  = formatExcelDate(student.fechaNacimiento) || (student.fechaNacimiento || '');
+    dom.editTelefono.value         = student.telefonos || '';
+    dom.editEmail.value            = student.correoEducacyl || '';
 
-    // U5: mostrar foto actual
+    // Tutores
+    const t1 = student.tutor1 || {};
+    const t2 = student.tutor2 || {};
+    dom.editTutor1Nombre.value     = t1.nombre || '';
+    dom.editTutor1Tel.value        = t1.telefonos || '';
+    dom.editTutor1Email.value      = t1.email || '';
+
+    dom.editTutor2Nombre.value     = t2.nombre || '';
+    dom.editTutor2Tel.value        = t2.telefonos || '';
+    dom.editTutor2Email.value      = t2.email || '';
+
+    // Foto y placeholder
+    dom.editPhoto.value = '';
+    dom.editPhotoPreview.src = '';
+    dom.editPhotoPreview.classList.add('hidden');
+    if (dom.editPhotoPlaceholder) dom.editPhotoPlaceholder.classList.remove('hidden');
+
     localforage.getItem(studentId).then(photoData => {
         if (photoData) {
             dom.editPhotoPreview.src = photoData;
             dom.editPhotoPreview.classList.remove('hidden');
+            if (dom.editPhotoPlaceholder) dom.editPhotoPlaceholder.classList.add('hidden');
         }
     });
 
@@ -1134,7 +1213,9 @@ function openEditModal(studentId, className) {
 function closeEditModal() {
     dom.editModal.classList.add('hidden');
     dom.editForm.reset();
+    dom.editPhotoPreview.src = '';
     dom.editPhotoPreview.classList.add('hidden');
+    if (dom.editPhotoPlaceholder) dom.editPhotoPlaceholder.classList.remove('hidden');
 }
 
 async function handleEditSubmit(e) {
@@ -1142,34 +1223,57 @@ async function handleEditSubmit(e) {
     const id = dom.editStudentId.value;
 
     let student = null;
-    for (const c of state.currentClasses) {
-        student = state.classes[c]?.find(s => s.id === id);
-        if (student) break;
+    for (const c of Object.keys(state.classes)) {
+        const found = state.classes[c]?.find(s => s.id === id);
+        if (found) {
+            student = found;
+            break;
+        }
     }
     if (!student) return;
 
-    student.nombre    = dom.editNombre.value.trim();
-    student.apellidos = dom.editApellidos.value.trim();
-    student.aka       = dom.editAka.value.trim();
+    student.nombre           = dom.editNombre.value.trim();
+    student.apellidos        = dom.editApellidos.value.trim();
+    student.aka              = dom.editAka.value.trim();
+    student.fechaNacimiento  = dom.editFechaNacimiento.value.trim();
+    student.telefonos        = dom.editTelefono.value.trim();
+    student.correoEducacyl   = dom.editEmail.value.trim();
+
+    if (!student.tutor1) student.tutor1 = {};
+    student.tutor1.nombre    = dom.editTutor1Nombre.value.trim();
+    student.tutor1.telefonos = dom.editTutor1Tel.value.trim();
+    student.tutor1.email     = dom.editTutor1Email.value.trim();
+
+    if (!student.tutor2) student.tutor2 = {};
+    student.tutor2.nombre    = dom.editTutor2Nombre.value.trim();
+    student.tutor2.telefonos = dom.editTutor2Tel.value.trim();
+    student.tutor2.email     = dom.editTutor2Email.value.trim();
 
     const file = dom.editPhoto.files[0];
     if (file) {
         const reader = new FileReader();
         reader.onload = async (evt) => {
             await localforage.setItem(id, evt.target.result);
-            finishEdit();
+            finishEdit(student, evt.target.result);
         };
         reader.readAsDataURL(file);
     } else {
-        finishEdit();
+        const currentPhoto = await localforage.getItem(id);
+        finishEdit(student, currentPhoto);
     }
 }
 
-function finishEdit() {
+function finishEdit(student, photoData) {
     saveState();
     closeEditModal();
     renderStudents();
-    showToast('Cambios guardados.', 'success');
+
+    // Si la ficha de detalle estaba abierta o seleccionada, actualizarla al instante
+    if (state.selectedStudentId === student.id && !dom.modalDetail.classList.contains('hidden')) {
+        openStudentDetail(student, photoData);
+    }
+
+    showToast('Cambios guardados correctamente.', 'success');
 }
 
 // =========================================================

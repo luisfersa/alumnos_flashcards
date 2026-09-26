@@ -25,7 +25,16 @@ const state = {
         const rawOrder = localStorage.getItem('flashcards_classRows');
         const parsedOrder = rawOrder ? JSON.parse(rawOrder) : null;
         if (parsedOrder && parsedOrder.length > 0) {
-            state.classRows = parsedOrder;
+            // Validación para asegurar que no perdimos clases y limpiar filas vacías
+            const allClassesInRows = new Set();
+            parsedOrder.forEach(row => row.forEach(c => allClassesInRows.add(c)));
+            const hasMissingClasses = Object.keys(state.classes).some(c => !allClassesInRows.has(c));
+            
+            if (hasMissingClasses) {
+                state.classRows = autoGroupClasses(Object.keys(state.classes));
+            } else {
+                state.classRows = parsedOrder;
+            }
         } else {
             state.classRows = autoGroupClasses(Object.keys(state.classes));
         }
@@ -689,7 +698,7 @@ function renderClasses() {
         rowEl.className = 'class-row';
         rowEl.dataset.rowIndex = rowIndex;
         
-        rowCards.forEach(async className => {
+        rowCards.forEach(className => {
             if (state.classes[className]) {
                 const card = document.createElement('div');
                 card.className = 'class-card';
@@ -697,29 +706,15 @@ function renderClasses() {
                 const students = state.classes[className];
                 const n = students.length;
 
-                // Elegir un alumno con foto o aleatorio para la vista previa
-                let previewImgSrc = null;
-                if (students.length > 0) {
-                    // Buscar si alguno tiene foto
-                    for (let s of [...students].sort(() => Math.random() - 0.5)) {
-                        const photoData = await localforage.getItem(s.id);
-                        if (photoData) {
-                            previewImgSrc = photoData;
-                            break;
-                        }
-                    }
-                }
-
-                const avatarHtml = previewImgSrc
-                    ? `<img src="${previewImgSrc}" class="class-preview-avatar" alt="Alumno de ${className}">`
-                    : `<div class="class-preview-empty">🎓</div>`;
-
+                // Renderizar la tarjeta inmediatamente con un placeholder
                 card.innerHTML = `
                     <div class="class-drag-handle" style="position:absolute; top:10px; right:10px; color:var(--text-muted); cursor:grab;" title="Arrastrar para ordenar">
                         <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
                     </div>
                     <div class="class-card-top">
-                        ${avatarHtml}
+                        <div class="class-preview-container">
+                            <div class="class-preview-empty">🎓</div>
+                        </div>
                         <div class="class-card-info">
                             <h3>${className}</h3>
                             <p class="class-card-count">${n} alumnos</p>
@@ -748,6 +743,28 @@ function renderClasses() {
                 });
                 
                 rowEl.appendChild(card);
+
+                // Cargar imagen de forma asíncrona para no bloquear el renderizado
+                if (students.length > 0) {
+                    const randomStudents = [...students].sort(() => Math.random() - 0.5);
+                    let found = false;
+                    const loadPreview = async () => {
+                        for (let s of randomStudents) {
+                            try {
+                                const photoData = await localforage.getItem(s.id);
+                                if (photoData) {
+                                    const container = card.querySelector('.class-preview-container');
+                                    if (container) {
+                                        container.innerHTML = `<img src="${photoData}" class="class-preview-avatar" alt="Alumno de ${className}">`;
+                                    }
+                                    found = true;
+                                    break;
+                                }
+                            } catch(e) {}
+                        }
+                    };
+                    loadPreview();
+                }
             }
         });
         
@@ -1162,6 +1179,9 @@ function openStudentDetail(student, photoData) {
         } else if (student.sexo === 'F') {
             dom.detailStudentGender.textContent = '👧 Chica';
             dom.detailStudentGender.className = 'badge-gender f';
+        } else if (student.sexo === 'U') {
+            dom.detailStudentGender.textContent = '⚪ Sin especificar';
+            dom.detailStudentGender.className = 'badge-gender'; // Use default gray styling
         } else {
             dom.detailStudentGender.textContent = '';
             dom.detailStudentGender.className = 'badge-gender hidden';
@@ -1482,7 +1502,15 @@ async function startGame(mode) {
     state.timer = null;
     if (state.classicTimeout) { clearTimeout(state.classicTimeout); state.classicTimeout = null; }
 
-    state.gameData        = [...students].sort(() => Math.random() - 0.5);
+    if (mode === 'gender_classify') {
+        state.gameData = [...students].sort((a, b) => {
+            const nameA = ((a.apellidos || '') + ' ' + a.nombre).toLowerCase().trim();
+            const nameB = ((b.apellidos || '') + ' ' + b.nombre).toLowerCase().trim();
+            return nameA.localeCompare(nameB);
+        });
+    } else {
+        state.gameData = [...students].sort(() => Math.random() - 0.5);
+    }
     state.currentGameMode = mode;
     state.gameIndex       = 0;
     state.score           = 0;
@@ -1944,6 +1972,18 @@ async function renderGameCard() {
 
     // --- MODO CLASIFICAR SEXO (Rápido estilo Clásico con foto + 3 opciones) ---
     } else if (state.currentGameMode === 'gender_classify') {
+        const isUnclassified = !student.sexo;
+        if (isUnclassified) {
+            const badgeAlert = document.createElement('div');
+            badgeAlert.className = 'student-group-badge';
+            badgeAlert.style.backgroundColor = '#fef3c7';
+            badgeAlert.style.color = '#92400e';
+            badgeAlert.style.borderColor = '#f59e0b';
+            badgeAlert.style.marginBottom = '1rem';
+            badgeAlert.innerHTML = '⚠️ No clasificado';
+            dom.gameArea.appendChild(badgeAlert);
+        }
+
         let imgClass = 'game-photo';
         if (student.sexo === 'M') {
             imgClass += ' gender-border-m';
@@ -1999,7 +2039,24 @@ async function renderGameCard() {
         btnGirl.id = 'btn-gender-f';
 
         const assignGender = (genderVal) => {
-            student.sexo = genderVal;
+            student.sexo = genderVal; // Actualiza la copia local para la UI actual
+
+            // Actualiza el objeto real en el estado global
+            let realStudent = null;
+            if (student._grupoOriginal && state.classes[student._grupoOriginal]) {
+                realStudent = state.classes[student._grupoOriginal].find(s => s.id === student.id);
+            }
+            if (!realStudent) {
+                // Fallback por si acaso
+                for (const c of Object.keys(state.classes)) {
+                    realStudent = state.classes[c]?.find(s => s.id === student.id);
+                    if (realStudent) break;
+                }
+            }
+            if (realStudent) {
+                realStudent.sexo = genderVal;
+            }
+
             saveState();
             // Avanzar al siguiente
             state.gameIndex++;
@@ -2013,14 +2070,27 @@ async function renderGameCard() {
         actionsGrid.appendChild(btnGirl);
         dom.gameArea.appendChild(actionsGrid);
 
-        const btnSkip = document.createElement('button');
-        btnSkip.className = 'btn-gender-skip';
-        btnSkip.style.width = '100%';
-        btnSkip.style.maxWidth = '440px';
-        btnSkip.innerHTML = `⚪ Sin especificar / Saltar <small style="opacity:0.75;">[3]</small>`;
-        btnSkip.id = 'btn-gender-skip';
-        btnSkip.addEventListener('click', () => assignGender(''));
-        dom.gameArea.appendChild(btnSkip);
+        const btnUnspecified = document.createElement('button');
+        btnUnspecified.className = 'btn-gender-skip';
+        btnUnspecified.style.width = '100%';
+        btnUnspecified.style.maxWidth = '440px';
+        btnUnspecified.innerHTML = `⚪ Sin especificar <small style="opacity:0.75;">[3]</small>`;
+        btnUnspecified.id = 'btn-gender-unspecified';
+        btnUnspecified.addEventListener('click', () => assignGender('U'));
+        dom.gameArea.appendChild(btnUnspecified);
+
+        const btnNext = document.createElement('button');
+        btnNext.className = 'btn secondary';
+        btnNext.style.width = '100%';
+        btnNext.style.maxWidth = '440px';
+        btnNext.style.marginTop = '0.75rem';
+        btnNext.innerHTML = `Siguiente (mantener actual) <small style="opacity:0.75;">[Espacio]</small>`;
+        btnNext.id = 'btn-gender-next';
+        btnNext.addEventListener('click', () => {
+            state.gameIndex++;
+            renderGameCard();
+        });
+        dom.gameArea.appendChild(btnNext);
 
         // Barra inferior de navegación
         const navBar = document.createElement('div');
@@ -2044,7 +2114,7 @@ async function renderGameCard() {
         statusText.style.fontSize = '0.85rem';
         statusText.style.color = 'var(--text-muted)';
         statusText.style.alignSelf = 'center';
-        statusText.textContent = student.sexo === 'M' ? 'Actual: Chico' : student.sexo === 'F' ? 'Actual: Chica' : 'Sin clasificar';
+        statusText.textContent = student.sexo === 'M' ? 'Actual: Chico' : student.sexo === 'F' ? 'Actual: Chica' : student.sexo === 'U' ? 'Actual: Sin especificar' : 'Sin clasificar';
 
         navBar.appendChild(prevBtn);
         navBar.appendChild(statusText);
@@ -2065,7 +2135,11 @@ function handleKeyboardShortcuts(e) {
             const btn = document.getElementById('btn-gender-f');
             if (btn) btn.click();
         } else if (e.key === '3') {
-            const btn = document.getElementById('btn-gender-skip');
+            const btn = document.getElementById('btn-gender-unspecified');
+            if (btn) btn.click();
+        } else if (e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            const btn = document.getElementById('btn-gender-next');
             if (btn) btn.click();
         } else if (e.key === 'ArrowLeft') {
             if (state.gameIndex > 0) {
@@ -2175,10 +2249,17 @@ async function exportBackup() {
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
 
-    const date = new Date().toISOString().slice(0, 10);
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const MM = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const dateStr = `${yyyy}${MM}${dd}-${hh}${mm}`;
+    
     const a = document.createElement('a');
     a.href = url;
-    a.download = `alumnos_backup_${date}.json`;
+    a.download = `alumnosLFS_${dateStr}.json`;
     a.click();
     URL.revokeObjectURL(url);
     showToast(`Backup exportado (${(json.length / 1024).toFixed(0)} KB)`, 'success');
@@ -2198,7 +2279,19 @@ async function importBackup(file) {
 
             // Restore state
             state.classes = backup.classes;
-            state.classRows = backup.classRows || autoGroupClasses(Object.keys(backup.classes));
+            
+            let importedRows = backup.classRows || [];
+            // Validación: comprobar que todas las clases están en los rows
+            const allClassesInRows = new Set();
+            importedRows.forEach(row => row.forEach(c => allClassesInRows.add(c)));
+            const hasMissingClasses = Object.keys(state.classes).some(c => !allClassesInRows.has(c));
+
+            if (importedRows.length === 0 || hasMissingClasses) {
+                state.classRows = autoGroupClasses(Object.keys(state.classes));
+            } else {
+                state.classRows = importedRows;
+            }
+
             if (backup.theme) {
                 state.theme = backup.theme;
                 document.documentElement.setAttribute('data-theme', state.theme);

@@ -431,6 +431,12 @@ function showHomeScreen() {
 }
 
 function showClassScreen(classesArray) {
+    const isNewClass = JSON.stringify(state.currentClasses) !== JSON.stringify(classesArray);
+    if (isNewClass) {
+        const filterMunicipioEl = document.getElementById('filter-municipio');
+        if (filterMunicipioEl) filterMunicipioEl.value = '';
+    }
+    
     state.currentClasses = classesArray;
     dom.currentClassTitle.textContent = classesArray.length > 1
         ? `${classesArray.length} clases seleccionadas`

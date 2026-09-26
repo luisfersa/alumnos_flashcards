@@ -32,7 +32,7 @@ const state = {
     } catch (e) {
         console.error('[Flashcards] Error leyendo clases:', e);
         state.classes = {};
-        state.classOrder = [];
+        state.classRows = [];
     }
     try {
         state.theme = localStorage.getItem('flashcards_theme') || 'dark';
@@ -292,9 +292,10 @@ function init() {
         else showToast('Selecciona al menos una clase.', 'warning');
     });
 
-    document.getElementById('btn-auto-sort').addEventListener('click', () => {
+    document.getElementById('btn-auto-sort').addEventListener('click', async () => {
         if (Object.keys(state.classes).length === 0) return;
-        if (confirm("¿Quieres reordenar automáticamente todas las clases por niveles? Perderás tu orden manual actual.")) {
+        const ok = await showConfirm('¿Quieres reordenar automáticamente todas las clases por niveles? Perderás tu orden manual actual.');
+        if (ok) {
             state.classRows = autoGroupClasses(Object.keys(state.classes));
             saveState();
             renderClasses();
@@ -433,7 +434,11 @@ function getSelectedClasses() {
 
 function getAllGameStudents() {
     const students = [];
-    state.currentClasses.forEach(c => { if (state.classes[c]) students.push(...state.classes[c]); });
+    state.currentClasses.forEach(c => { 
+        if (state.classes[c]) {
+            state.classes[c].forEach(s => students.push({ ...s, _grupoOriginal: c }));
+        }
+    });
     return students;
 }
 
@@ -471,9 +476,35 @@ function formatExcelDate(val) {
 // =========================================================
 // EXCEL
 // =========================================================
-function handleExcelUpload(e) {
+
+// Carga la librería XLSX de forma diferida (solo cuando se necesita)
+function loadXLSX() {
+    if (typeof XLSX !== 'undefined') return Promise.resolve();
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+        script.onload = resolve;
+        script.onerror = () => reject(new Error('No se pudo cargar el lector de Excel. Comprueba tu conexión.'));
+        document.head.appendChild(script);
+    });
+}
+
+async function handleExcelUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
+
+    // Cargar xlsx solo si aún no está disponible (primera vez)
+    if (typeof XLSX === 'undefined') {
+        showToast('Cargando lector de Excel…', 'info', 2000);
+        try {
+            await loadXLSX();
+        } catch (err) {
+            showToast(err.message, 'error');
+            e.target.value = '';
+            return;
+        }
+    }
+
     const reader = new FileReader();
     reader.onload = (evt) => {
         try {
@@ -489,6 +520,7 @@ function handleExcelUpload(e) {
     reader.readAsArrayBuffer(file);
     e.target.value = '';
 }
+
 
 function processExcelData(rows) {
     const newClasses = {};
@@ -1532,6 +1564,17 @@ async function renderGameCard() {
 
     dom.gameArea.innerHTML = '';
 
+    // Mostrar el badge de la clase en todos los modos menos en el quiz de clases
+    if (state.currentGameMode !== 'class_quiz' && student._grupoOriginal) {
+        const classBadge = document.createElement('div');
+        classBadge.className = 'student-group-badge game-class-badge';
+        classBadge.textContent = student._grupoOriginal;
+        classBadge.style.marginBottom = '1rem';
+        classBadge.style.fontSize = '1rem';
+        classBadge.style.padding = '0.4rem 1rem';
+        dom.gameArea.appendChild(classBadge);
+    }
+
     // --- MODO CLÁSICO ---
     if (state.currentGameMode === 'classic') {
         const wrapper = document.createElement('div');
@@ -1842,6 +1885,9 @@ async function renderGameCard() {
         });
 
         dom.gameArea.appendChild(grid);
+
+    // --- MODO ESCRITURA ---
+    } else if (state.currentGameMode === 'typing') {
         const img = document.createElement('img');
         img.src       = imgSrc;
         img.className = 'game-photo';
@@ -1898,32 +1944,49 @@ async function renderGameCard() {
 
     // --- MODO CLASIFICAR SEXO (Rápido estilo Clásico con foto + 3 opciones) ---
     } else if (state.currentGameMode === 'gender_classify') {
-        const card = document.createElement('div');
-        card.className = 'gender-classifier-card';
+        let imgClass = 'game-photo';
+        if (student.sexo === 'M') {
+            imgClass += ' gender-border-m';
+        } else if (student.sexo === 'F') {
+            imgClass += ' gender-border-f';
+        }
 
-        const photoWrap = document.createElement('div');
-        photoWrap.className = 'gender-card-photo-wrap';
         if (imgSrc) {
-            photoWrap.innerHTML = `<img src="${imgSrc}" class="gender-card-photo" alt="Foto de ${displayName}">`;
+            const img = document.createElement('img');
+            img.src = imgSrc;
+            img.className = imgClass;
+            img.alt = `Foto de ${displayName}`;
+            img.style.marginBottom = '1.5rem';
+            dom.gameArea.appendChild(img);
         } else {
-            photoWrap.innerHTML = `<div class="gender-card-empty-photo">👤</div>`;
+            const empty = document.createElement('div');
+            empty.className = imgClass;
+            empty.style.display = 'flex';
+            empty.style.alignItems = 'center';
+            empty.style.justifyContent = 'center';
+            empty.style.fontSize = '4rem';
+            empty.style.background = 'var(--secondary)';
+            empty.style.marginBottom = '1.5rem';
+            empty.textContent = '👤';
+            dom.gameArea.appendChild(empty);
         }
-        card.appendChild(photoWrap);
 
-        const nameEl = document.createElement('h2');
-        nameEl.className = 'gender-card-name';
-        nameEl.textContent = realName;
-        card.appendChild(nameEl);
-
-        if (student.aka) {
-            const akaEl = document.createElement('div');
-            akaEl.className = 'gender-card-aka';
-            akaEl.textContent = `Alias: "${student.aka}"`;
-            card.appendChild(akaEl);
-        }
+        const nameBanner = document.createElement('div');
+        nameBanner.className = 'reverse-name-banner';
+        nameBanner.style.padding = '1rem';
+        nameBanner.style.marginBottom = '1.5rem';
+        nameBanner.style.width = '100%';
+        nameBanner.style.maxWidth = '440px';
+        nameBanner.innerHTML = `
+            <h2 class="reverse-name-title">${realName}</h2>
+            ${student.aka ? `<div class="reverse-name-subtitle">Alias: "${student.aka}"</div>` : ''}
+        `;
+        dom.gameArea.appendChild(nameBanner);
 
         const actionsGrid = document.createElement('div');
         actionsGrid.className = 'gender-quick-actions';
+        actionsGrid.style.width = '100%';
+        actionsGrid.style.maxWidth = '440px';
 
         const btnBoy = document.createElement('button');
         btnBoy.className = `btn-gender-quick boy ${student.sexo === 'M' ? 'active' : ''}`;
@@ -1948,18 +2011,23 @@ async function renderGameCard() {
 
         actionsGrid.appendChild(btnBoy);
         actionsGrid.appendChild(btnGirl);
-        card.appendChild(actionsGrid);
+        dom.gameArea.appendChild(actionsGrid);
 
         const btnSkip = document.createElement('button');
         btnSkip.className = 'btn-gender-skip';
+        btnSkip.style.width = '100%';
+        btnSkip.style.maxWidth = '440px';
         btnSkip.innerHTML = `⚪ Sin especificar / Saltar <small style="opacity:0.75;">[3]</small>`;
         btnSkip.id = 'btn-gender-skip';
         btnSkip.addEventListener('click', () => assignGender(''));
-        card.appendChild(btnSkip);
+        dom.gameArea.appendChild(btnSkip);
 
         // Barra inferior de navegación
         const navBar = document.createElement('div');
         navBar.className = 'gender-nav-bar';
+        navBar.style.width = '100%';
+        navBar.style.maxWidth = '440px';
+        navBar.style.marginTop = '1.5rem';
 
         const prevBtn = document.createElement('button');
         prevBtn.className = 'btn secondary small';
@@ -1980,9 +2048,7 @@ async function renderGameCard() {
 
         navBar.appendChild(prevBtn);
         navBar.appendChild(statusText);
-        card.appendChild(navBar);
-
-        dom.gameArea.appendChild(card);
+        dom.gameArea.appendChild(navBar);
     }
 }
 

@@ -15,6 +15,7 @@
     --bg-color: #0f172a;
     --text-color: #f8fafc;
     --text-muted: #94a3b8;
+    --text-dark: #f8fafc;
     --card-bg: #1e293b;
     --card-border: #334155;
     --body-bg: #0f172a;
@@ -35,6 +36,7 @@
     --bg-color: #f8fafc;
     --text-color: #334155;
     --text-muted: #64748b;
+    --text-dark: #0f172a;
     --card-bg: #ffffff;
     --card-border: #e2e8f0;
     --body-bg: #f4f7f9;
@@ -55,6 +57,7 @@
     --bg-color: #002b36;
     --text-color: #93a1a1;
     --text-muted: #586e75;
+    --text-dark: #93a1a1;
     --card-bg: #073642;
     --card-border: #003847;
     --body-bg: #002b36;
@@ -75,6 +78,7 @@
     --bg-color: #fdf6e3;
     --text-color: #586e75;
     --text-muted: #93a1a1;
+    --text-dark: #073642;
     --card-bg: #eee8d5;
     --card-border: #ddd6c1;
     --body-bg: #fdf6e3;
@@ -95,6 +99,7 @@
     --bg-color: #ffffff;
     --text-color: #1e293b;
     --text-muted: #64748b;
+    --text-dark: #0f172a;
     --card-bg: #f8fafc;
     --card-border: transparent;
     --body-bg: #ffffff;
@@ -1776,14 +1781,14 @@ body.is-dragging .class-row {
     flex-direction: column;
     background: white;
     border-radius: 12px;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--card-border);
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
 .photo-map-col-title {
     padding: 1rem 1.25rem;
     background: #f1f5f9;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--card-border);
     font-weight: 600;
     color: var(--text-dark);
     display: flex;
@@ -1810,7 +1815,7 @@ body.is-dragging .class-row {
     align-items: center;
     padding: 0.75rem 1rem;
     background: white;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--card-border);
     border-radius: 8px;
     height: 60px;
     transition: all 0.2s ease;
@@ -1853,7 +1858,7 @@ body.is-dragging .class-row {
 .photo-map-footer {
     padding: 1.25rem 2rem;
     background: white;
-    border-top: 1px solid var(--border-color);
+    border-top: 1px solid var(--card-border);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -1905,7 +1910,7 @@ body.is-dragging .class-row {
     flex: 1;
     font-weight: 600;
     color: var(--text-dark);
-    border-bottom: 2px solid var(--border-color);
+    border-bottom: 2px solid var(--card-border);
     padding-bottom: 0.5rem;
 }
 
@@ -2124,60 +2129,16 @@ body.is-dragging .class-row {
 }
 
 /* =========================================================
-   MODO CLASIFICAR SEXO (TARJETA RÁPIDA ESTILO CLÁSICO)
+   MODO CLASIFICAR SEXO (ESTILO INTEGRADO AL JUEGO)
    ========================================================= */
-.gender-classifier-card {
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-    width: 100%;
-    max-width: 440px;
-    padding: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    margin: 0 auto;
-    animation: fadeIn 0.25s ease-out;
+.gender-border-m {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4) !important;
 }
 
-.gender-card-photo-wrap {
-    width: 200px;
-    height: 240px;
-    border-radius: 12px;
-    overflow: hidden;
-    margin-bottom: 1.25rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-    background: var(--bg-color);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.gender-card-photo {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.gender-card-empty-photo {
-    font-size: 4rem;
-    opacity: 0.6;
-}
-
-.gender-card-name {
-    font-size: 1.35rem;
-    font-weight: 700;
-    color: var(--title-color);
-    margin: 0 0 0.25rem 0;
-}
-
-.gender-card-aka {
-    font-size: 0.95rem;
-    color: var(--primary);
-    font-weight: 500;
-    margin-bottom: 1.25rem;
+.gender-border-f {
+    border-color: #ec4899 !important;
+    box-shadow: 0 4px 16px rgba(236, 72, 153, 0.4) !important;
 }
 
 .gender-quick-actions {
@@ -2198,7 +2159,7 @@ body.is-dragging .class-row {
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
-    border: 2px solid var(--border-color);
+    border: 2px solid var(--card-border);
     background: var(--bg-color);
     color: var(--text-color);
     transition: all 0.15s ease;
@@ -2235,7 +2196,7 @@ body.is-dragging .class-row {
     font-size: 0.85rem;
     color: var(--text-muted);
     background: transparent;
-    border: 1px dashed var(--border-color);
+    border: 1px dashed var(--card-border);
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s;
@@ -2255,3 +2216,20 @@ body.is-dragging .class-row {
     gap: 0.5rem;
 }
 
+
+/* =========================================================
+   ACCESIBILIDAD: Reducir movimiento
+   Para usuarios con vértigo o sensibilidad al movimiento
+   ========================================================= */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    /* Excepción: el spinner de carga debe seguir funcionando */
+    .spin {
+        animation-duration: 0.8s !important;
+    }
+}

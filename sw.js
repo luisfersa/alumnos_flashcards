@@ -1,7 +1,7 @@
 // Service Worker — alumnosLFS PWA
 // Caches app shell for offline use. Student data (localforage/localStorage) is always available offline.
 
-const CACHE_NAME = 'alumnoslfs-v2';
+const CACHE_NAME = 'alumnoslfs-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -9,10 +9,10 @@ const ASSETS = [
   './style.css',
   './manifest.json',
   './icon-512.jpg',
-  'https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js',
   'https://cdn.jsdelivr.net/npm/localforage/dist/localforage.min.js',
   'https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js',
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'
+  // xlsx se omite del precache — se carga y cachea solo al importar un Excel
 ];
 
 // Install: cache all assets

@@ -155,7 +155,20 @@
                 </div>
 
                 <div class="students-section-header">
-                    <h3>Alumnos</h3>
+                    <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                        <h3 style="margin: 0;">Alumnos</h3>
+                        <!-- Barra de herramientas (Filtros y Orden) -->
+                        <div class="students-filters" style="display: flex; gap: 0.5rem; align-items: center;">
+                            <select id="filter-municipio" class="form-select-custom" title="Filtrar por municipio">
+                                <option value="">Todos los municipios</option>
+                            </select>
+                            <select id="sort-students" class="form-select-custom" title="Ordenar alumnos">
+                                <option value="apellidos">Ordenar: Apellidos</option>
+                                <option value="nombre">Ordenar: Nombre</option>
+                                <option value="edad">Ordenar: Edad</option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="view-mode-toggle" role="group" aria-label="Modo de visualización">
                         <button id="view-mode-orla" class="btn icon-btn view-toggle-btn active" title="Modo Orla (Cuadrícula)" aria-label="Modo Orla">
                             <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>

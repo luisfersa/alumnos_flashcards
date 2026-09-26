@@ -239,6 +239,11 @@ function init() {
             renderStudents();
         });
     }
+    
+    const filterMunicipioEl = document.getElementById('filter-municipio');
+    const sortStudentsEl = document.getElementById('sort-students');
+    if (filterMunicipioEl) filterMunicipioEl.addEventListener('change', renderStudents);
+    if (sortStudentsEl) sortStudentsEl.addEventListener('change', renderStudents);
 
     renderClasses();
 
@@ -1064,18 +1069,62 @@ async function renderStudents() {
     dom.studentsList.innerHTML = '';
     dom.studentsOrla.innerHTML = '';
 
-    const students = [];
+    let students = [];
     state.currentClasses.forEach(c => {
         if (state.classes[c]) {
             state.classes[c].forEach(s => students.push({ ...s, _grupoOriginal: c }));
         }
     });
 
-    // Ordenar por apellidos y nombre
+    // 1. Extraer municipios únicos y actualizar el dropdown (manteniendo la selección si existe)
+    const filterMunicipioEl = document.getElementById('filter-municipio');
+    const sortStudentsEl = document.getElementById('sort-students');
+    
+    if (filterMunicipioEl) {
+        const currentSelection = filterMunicipioEl.value;
+        const municipios = [...new Set(students.map(s => s.municipio).filter(Boolean))].sort();
+        
+        let optionsHtml = '<option value="">Todos los municipios</option>';
+        municipios.forEach(m => {
+            const selected = m === currentSelection ? 'selected' : '';
+            optionsHtml += `<option value="${m}" ${selected}>${m}</option>`;
+        });
+        filterMunicipioEl.innerHTML = optionsHtml;
+
+        // Filtrar por municipio si hay uno seleccionado
+        const activeFilter = filterMunicipioEl.value;
+        if (activeFilter) {
+            students = students.filter(s => s.municipio === activeFilter);
+        }
+    }
+
+    // 2. Ordenar
+    const sortVal = sortStudentsEl ? sortStudentsEl.value : 'apellidos';
+    
+    const parseDateForSort = (dateStr) => {
+        if (!dateStr) return new Date('2999-01-01'); // Los que no tienen edad van al final
+        const parts = String(dateStr).split('/');
+        if (parts.length === 3) return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+        const parsed = new Date(dateStr);
+        return isNaN(parsed.getTime()) ? new Date('2999-01-01') : parsed;
+    };
+
     students.sort((a, b) => {
-        const nameA = ((a.apellidos || '') + ' ' + a.nombre).toLowerCase().trim();
-        const nameB = ((b.apellidos || '') + ' ' + b.nombre).toLowerCase().trim();
-        return nameA.localeCompare(nameB);
+        if (sortVal === 'edad') {
+            const dateA = parseDateForSort(a.fechaNacimiento);
+            const dateB = parseDateForSort(b.fechaNacimiento);
+            // Ordenar de mayor edad (fecha más antigua) a menor edad
+            return dateA - dateB;
+        } else if (sortVal === 'nombre') {
+            const nameA = (a.nombre || '').toLowerCase().trim();
+            const nameB = (b.nombre || '').toLowerCase().trim();
+            return nameA.localeCompare(nameB);
+        } else {
+            // Por defecto: Apellidos
+            const nameA = ((a.apellidos || '') + ' ' + (a.nombre || '')).toLowerCase().trim();
+            const nameB = ((b.apellidos || '') + ' ' + (b.nombre || '')).toLowerCase().trim();
+            return nameA.localeCompare(nameB);
+        }
     });
 
     const multiClase = state.currentClasses.length > 1;

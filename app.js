@@ -68,6 +68,11 @@ const dom = {
     gameScore:           document.getElementById('game-score'),
     gameTime:            document.getElementById('game-time'),
     editModal:           document.getElementById('edit-modal'),
+    editModalTitle:      document.getElementById('edit-modal-title'),
+    editModalSubtitle:   document.getElementById('edit-modal-subtitle'),
+    studentModalIcon:    document.getElementById('student-modal-icon'),
+    editClaseContainer:  document.getElementById('edit-clase-container'),
+    editClase:           document.getElementById('edit-clase'),
     closeEditModal:      document.getElementById('close-edit-modal'),
     cancelEditBtn:       document.getElementById('cancel-edit-btn'),
     editForm:            document.getElementById('edit-form'),
@@ -180,7 +185,8 @@ function init() {
         { id: 'dark', icon: '🌙', label: 'Oscuro' },
         { id: 'light', icon: '☀️', label: 'Claro' },
         { id: 'solarized-dark', icon: '🌲', label: 'Bosque' },
-        { id: 'solarized-light', icon: '🌾', label: 'Solar' }
+        { id: 'solarized-light', icon: '🌾', label: 'Solar' },
+        { id: 'minimal', icon: '📄', label: 'Minimal' }
     ];
 
     const btnToggleTheme = document.getElementById('btn-toggle-theme');
@@ -1169,45 +1175,98 @@ async function deleteStudent(studentId, className) {
     showToast('Alumno eliminado.', 'success');
 }
 
-function openEditModal(studentId, className) {
-    const student = state.classes[className]?.find(s => s.id === studentId);
-    if (!student) return;
+function openStudentModal(studentId = null, defaultClass = null) {
+    const isEdit = Boolean(studentId);
 
-    dom.editStudentId.value        = student.id;
-    dom.editNombre.value           = student.nombre || '';
-    dom.editApellidos.value        = student.apellidos || '';
-    dom.editAka.value              = student.aka || '';
-    dom.editFechaNacimiento.value  = formatExcelDate(student.fechaNacimiento) || (student.fechaNacimiento || '');
-    dom.editTelefono.value         = student.telefonos || '';
-    dom.editEmail.value            = student.correoEducacyl || '';
+    // Ajustar encabezados e iconos según el modo
+    if (dom.studentModalIcon) {
+        dom.studentModalIcon.textContent = isEdit ? '✏️' : '➕';
+    }
+    if (dom.editModalTitle) {
+        dom.editModalTitle.textContent = isEdit ? 'Editar Datos del Alumno' : 'Añadir Nuevo Alumno';
+    }
+    if (dom.editModalSubtitle) {
+        dom.editModalSubtitle.textContent = isEdit 
+            ? 'Modifica los datos personales, de contacto y tutores' 
+            : 'Registra un nuevo alumno con su ficha completa y foto';
+    }
 
-    // Tutores
-    const t1 = student.tutor1 || {};
-    const t2 = student.tutor2 || {};
-    dom.editTutor1Nombre.value     = t1.nombre || '';
-    dom.editTutor1Tel.value        = t1.telefonos || '';
-    dom.editTutor1Email.value      = t1.email || '';
+    // Configurar selector de clase: solo visible al crear alumno
+    if (dom.editClaseContainer && dom.editClase) {
+        if (isEdit) {
+            dom.editClaseContainer.classList.add('hidden');
+            dom.editClase.removeAttribute('required');
+        } else {
+            dom.editClaseContainer.classList.remove('hidden');
+            dom.editClase.setAttribute('required', 'required');
+            dom.editClase.innerHTML = '';
+            const allClasses = Object.keys(state.classes);
+            allClasses.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = c;
+                if ((defaultClass && defaultClass === c) || 
+                    (state.currentClasses.length === 1 && state.currentClasses[0] === c)) {
+                    opt.selected = true;
+                }
+                dom.editClase.appendChild(opt);
+            });
+        }
+    }
 
-    dom.editTutor2Nombre.value     = t2.nombre || '';
-    dom.editTutor2Tel.value        = t2.telefonos || '';
-    dom.editTutor2Email.value      = t2.email || '';
-
-    // Foto y placeholder
+    // Resetear formulario
+    dom.editForm.reset();
+    dom.editStudentId.value = studentId || '';
     dom.editPhoto.value = '';
     dom.editPhotoPreview.src = '';
     dom.editPhotoPreview.classList.add('hidden');
     if (dom.editPhotoPlaceholder) dom.editPhotoPlaceholder.classList.remove('hidden');
 
-    localforage.getItem(studentId).then(photoData => {
-        if (photoData) {
-            dom.editPhotoPreview.src = photoData;
-            dom.editPhotoPreview.classList.remove('hidden');
-            if (dom.editPhotoPlaceholder) dom.editPhotoPlaceholder.classList.add('hidden');
+    if (isEdit) {
+        let student = null;
+        for (const c of Object.keys(state.classes)) {
+            const found = state.classes[c]?.find(s => s.id === studentId);
+            if (found) {
+                student = found;
+                break;
+            }
         }
-    });
+        if (!student) return;
+
+        dom.editNombre.value           = student.nombre || '';
+        dom.editApellidos.value        = student.apellidos || '';
+        dom.editAka.value              = student.aka || '';
+        dom.editFechaNacimiento.value  = formatExcelDate(student.fechaNacimiento) || (student.fechaNacimiento || '');
+        dom.editTelefono.value         = student.telefonos || '';
+        dom.editEmail.value            = student.correoEducacyl || '';
+
+        // Tutores
+        const t1 = student.tutor1 || {};
+        const t2 = student.tutor2 || {};
+        dom.editTutor1Nombre.value     = t1.nombre || '';
+        dom.editTutor1Tel.value        = t1.telefonos || '';
+        dom.editTutor1Email.value      = t1.email || '';
+
+        dom.editTutor2Nombre.value     = t2.nombre || '';
+        dom.editTutor2Tel.value        = t2.telefonos || '';
+        dom.editTutor2Email.value      = t2.email || '';
+
+        localforage.getItem(studentId).then(photoData => {
+            if (photoData) {
+                dom.editPhotoPreview.src = photoData;
+                dom.editPhotoPreview.classList.remove('hidden');
+                if (dom.editPhotoPlaceholder) dom.editPhotoPlaceholder.classList.add('hidden');
+            }
+        });
+    }
 
     dom.editModal.classList.remove('hidden');
     dom.editNombre.focus();
+}
+
+// Compatibilidad con llamadas existentes
+function openEditModal(studentId, className) {
+    openStudentModal(studentId, className);
 }
 
 function closeEditModal() {
@@ -1221,59 +1280,107 @@ function closeEditModal() {
 async function handleEditSubmit(e) {
     e.preventDefault();
     const id = dom.editStudentId.value;
+    const isNew = !id;
 
-    let student = null;
-    for (const c of Object.keys(state.classes)) {
-        const found = state.classes[c]?.find(s => s.id === id);
-        if (found) {
-            student = found;
-            break;
-        }
+    const nombre   = dom.editNombre.value.trim();
+    const apellidos= dom.editApellidos.value.trim();
+    if (!nombre) {
+        showToast('El nombre es obligatorio.', 'warning');
+        return;
     }
-    if (!student) return;
 
-    student.nombre           = dom.editNombre.value.trim();
-    student.apellidos        = dom.editApellidos.value.trim();
-    student.aka              = dom.editAka.value.trim();
-    student.fechaNacimiento  = dom.editFechaNacimiento.value.trim();
-    student.telefonos        = dom.editTelefono.value.trim();
-    student.correoEducacyl   = dom.editEmail.value.trim();
+    let targetClass = null;
+    let student = null;
 
-    if (!student.tutor1) student.tutor1 = {};
-    student.tutor1.nombre    = dom.editTutor1Nombre.value.trim();
-    student.tutor1.telefonos = dom.editTutor1Tel.value.trim();
-    student.tutor1.email     = dom.editTutor1Email.value.trim();
+    if (isNew) {
+        targetClass = dom.editClase ? dom.editClase.value : state.currentClasses[0];
+        if (!targetClass) {
+            showToast('Selecciona una clase para el nuevo alumno.', 'warning');
+            return;
+        }
 
-    if (!student.tutor2) student.tutor2 = {};
-    student.tutor2.nombre    = dom.editTutor2Nombre.value.trim();
-    student.tutor2.telefonos = dom.editTutor2Tel.value.trim();
-    student.tutor2.email     = dom.editTutor2Email.value.trim();
+        const generateSafeId = () => {
+            if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+            return Date.now().toString(36) + Math.random().toString(36).substring(2);
+        };
+
+        student = {
+            id: generateSafeId(),
+            nombre,
+            apellidos,
+            aka: dom.editAka.value.trim(),
+            fechaNacimiento: dom.editFechaNacimiento.value.trim(),
+            telefonos: dom.editTelefono.value.trim(),
+            correoEducacyl: dom.editEmail.value.trim(),
+            tutor1: {
+                nombre: dom.editTutor1Nombre.value.trim(),
+                telefonos: dom.editTutor1Tel.value.trim(),
+                email: dom.editTutor1Email.value.trim()
+            },
+            tutor2: {
+                nombre: dom.editTutor2Nombre.value.trim(),
+                telefonos: dom.editTutor2Tel.value.trim(),
+                email: dom.editTutor2Email.value.trim()
+            }
+        };
+
+        if (!state.classes[targetClass]) state.classes[targetClass] = [];
+        state.classes[targetClass].push(student);
+    } else {
+        for (const c of Object.keys(state.classes)) {
+            const found = state.classes[c]?.find(s => s.id === id);
+            if (found) {
+                student = found;
+                targetClass = c;
+                break;
+            }
+        }
+        if (!student) return;
+
+        student.nombre           = nombre;
+        student.apellidos        = apellidos;
+        student.aka              = dom.editAka.value.trim();
+        student.fechaNacimiento  = dom.editFechaNacimiento.value.trim();
+        student.telefonos        = dom.editTelefono.value.trim();
+        student.correoEducacyl   = dom.editEmail.value.trim();
+
+        if (!student.tutor1) student.tutor1 = {};
+        student.tutor1.nombre    = dom.editTutor1Nombre.value.trim();
+        student.tutor1.telefonos = dom.editTutor1Tel.value.trim();
+        student.tutor1.email     = dom.editTutor1Email.value.trim();
+
+        if (!student.tutor2) student.tutor2 = {};
+        student.tutor2.nombre    = dom.editTutor2Nombre.value.trim();
+        student.tutor2.telefonos = dom.editTutor2Tel.value.trim();
+        student.tutor2.email     = dom.editTutor2Email.value.trim();
+    }
 
     const file = dom.editPhoto.files[0];
     if (file) {
         const reader = new FileReader();
         reader.onload = async (evt) => {
-            await localforage.setItem(id, evt.target.result);
-            finishEdit(student, evt.target.result);
+            await localforage.setItem(student.id, evt.target.result);
+            finishEdit(student, evt.target.result, isNew);
         };
         reader.readAsDataURL(file);
     } else {
-        const currentPhoto = await localforage.getItem(id);
-        finishEdit(student, currentPhoto);
+        const currentPhoto = isNew ? null : await localforage.getItem(student.id);
+        finishEdit(student, currentPhoto, isNew);
     }
 }
 
-function finishEdit(student, photoData) {
+function finishEdit(student, photoData, isNew = false) {
     saveState();
     closeEditModal();
     renderStudents();
+    renderClasses();
 
-    // Si la ficha de detalle estaba abierta o seleccionada, actualizarla al instante
-    if (state.selectedStudentId === student.id && !dom.modalDetail.classList.contains('hidden')) {
+    // Si la ficha de detalle estaba abierta y se editó, actualizarla
+    if (!isNew && state.selectedStudentId === student.id && !dom.modalDetail.classList.contains('hidden')) {
         openStudentDetail(student, photoData);
     }
 
-    showToast('Cambios guardados correctamente.', 'success');
+    showToast(isNew ? 'Alumno añadido correctamente.' : 'Cambios guardados correctamente.', 'success');
 }
 
 // =========================================================
@@ -1844,99 +1951,13 @@ function initBackup() {
     }
 }
 
-// Add student mid-course
+// Botón de Añadir Alumno: reutiliza el modal unificado openStudentModal
 function initAddStudent() {
-    const modal   = document.getElementById('modal-add-student');
-    const form    = document.getElementById('add-student-form');
     const btnOpen = document.getElementById('btn-add-student');
-    const btnClose= document.getElementById('close-add-student-modal');
-    const btnCancel = document.getElementById('cancel-add-student');
-
-    const closeModal = () => {
-        modal.classList.add('hidden');
-        form.reset();
-    };
-
     if (btnOpen) {
         btnOpen.addEventListener('click', () => {
-            // Populate class selector with all known classes, defaulting to current
-            const sel = document.getElementById('new-clase');
-            sel.innerHTML = '';
-            const allClasses = Object.keys(state.classes);
-            allClasses.forEach(c => {
-                const opt = document.createElement('option');
-                opt.value = c;
-                opt.textContent = c;
-                // Pre-select the currently viewed class(es)
-                if (state.currentClasses.length === 1 && state.currentClasses[0] === c) {
-                    opt.selected = true;
-                }
-                sel.appendChild(opt);
-            });
-            modal.classList.remove('hidden');
-            document.getElementById('new-nombre').focus();
-        });
-    }
-
-    if (btnClose)  btnClose.addEventListener('click', closeModal);
-    if (btnCancel) btnCancel.addEventListener('click', closeModal);
-    modal?.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-
-    if (form) {
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const nombre   = document.getElementById('new-nombre').value.trim();
-            const apellidos= document.getElementById('new-apellidos').value.trim();
-            const clase    = document.getElementById('new-clase').value;
-            const telefono = document.getElementById('new-telefono').value.trim();
-            const t1nombre = document.getElementById('new-tutor1-nombre').value.trim();
-            const t1tel    = document.getElementById('new-tutor1-tel').value.trim();
-            const t1email  = document.getElementById('new-tutor1-email').value.trim();
-            const t2nombre = document.getElementById('new-tutor2-nombre').value.trim();
-            const t2tel    = document.getElementById('new-tutor2-tel').value.trim();
-            const t2email  = document.getElementById('new-tutor2-email').value.trim();
-            const photoFile= document.getElementById('new-photo').files[0];
-
-            if (!nombre || !clase) {
-                showToast('El nombre y la clase son obligatorios.', 'warning');
-                return;
-            }
-
-            const generateSafeId = () => {
-                if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
-                return Date.now().toString(36) + Math.random().toString(36).substring(2);
-            };
-
-            const newStudent = {
-                id: generateSafeId(),
-                nombre,
-                apellidos,
-                telefonos: telefono,
-                tutor1: { nombre: t1nombre, telefonos: t1tel, email: t1email },
-                tutor2: { nombre: t2nombre, telefonos: t2tel, email: t2email }
-            };
-
-            if (!state.classes[clase]) state.classes[clase] = [];
-            state.classes[clase].push(newStudent);
-            saveState();
-
-            // Save photo if provided
-            if (photoFile) {
-                const reader = new FileReader();
-                reader.onload = async (evt) => {
-                    await localforage.setItem(newStudent.id, evt.target.result);
-                    renderStudents();
-                };
-                reader.readAsDataURL(photoFile);
-            } else {
-                renderStudents();
-            }
-
-            // Update class card count
-            renderClasses();
-            closeModal();
-            showToast(`${nombre} ${apellidos} añadido a ${clase}.`, 'success');
+            const defaultClass = state.currentClasses.length === 1 ? state.currentClasses[0] : null;
+            openStudentModal(null, defaultClass);
         });
     }
 }

@@ -82,6 +82,26 @@
     --input-bg: #fdf6e3;
 }
 
+/* Minimal Zen (5º Tema: Estilo limpio, sin recuadros pesados, tipográfico y espacioso) */
+[data-theme="minimal"] {
+    --primary: #0f172a;
+    --primary-hover: #334155;
+    --secondary: #f1f5f9;
+    --secondary-hover: #e2e8f0;
+    --danger: #e11d48;
+    --danger-hover: #be123c;
+    --success: #059669;
+    --warning: #d97706;
+    --bg-color: #ffffff;
+    --text-color: #1e293b;
+    --text-muted: #64748b;
+    --card-bg: #f8fafc;
+    --card-border: transparent;
+    --body-bg: #ffffff;
+    --title-color: #0f172a;
+    --input-bg: #f1f5f9;
+}
+
 /* =========================================================
    RESET & BASE
    ========================================================= */
@@ -1810,4 +1830,101 @@ body.is-dragging .class-row {
         align-items: center;
         text-align: center;
     }
+}
+
+/* =========================================================
+   TEMA 5: MINIMAL ZEN (Diseño sin recuadros pesados)
+   ========================================================= */
+[data-theme="minimal"] .app-container {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 1.5rem 0.5rem;
+}
+
+[data-theme="minimal"] header {
+    border-bottom: 2px solid #0f172a;
+    padding-bottom: 1.25rem;
+}
+
+[data-theme="minimal"] .class-card {
+    background: #ffffff;
+    border: none;
+    border-bottom: 2px solid #f1f5f9;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    transition: transform 0.15s, border-color 0.15s, background-color 0.15s;
+}
+[data-theme="minimal"] .class-card:hover {
+    border-bottom-color: #0f172a;
+    background: #f8fafc;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transform: translateY(-2px);
+}
+[data-theme="minimal"] .class-card.selected {
+    border-left: 4px solid #0f172a;
+    background: #f8fafc;
+}
+
+[data-theme="minimal"] .student-item {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #e2e8f0;
+    border-radius: 0;
+    padding: 0.85rem 0.25rem;
+}
+[data-theme="minimal"] .student-item:hover {
+    background: #f8fafc;
+    border-bottom-color: #0f172a;
+    transform: translateX(4px);
+    box-shadow: none;
+}
+
+[data-theme="minimal"] .orla-card {
+    background: #ffffff;
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+[data-theme="minimal"] .orla-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.07);
+}
+
+[data-theme="minimal"] .upload-section-compact {
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+}
+
+[data-theme="minimal"] .modal-content {
+    border: none;
+    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="minimal"] .form-control-modern {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+}
+[data-theme="minimal"] .form-control-modern:focus {
+    background: #ffffff;
+    border-color: #0f172a;
+    box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="minimal"] .btn.primary {
+    background: #0f172a;
+    color: #ffffff;
+    border-color: #0f172a;
+}
+[data-theme="minimal"] .btn.primary:hover {
+    background: #1e293b;
+    border-color: #1e293b;
+}
+
+[data-theme="minimal"] .tutor-form-box {
+    background: #f8fafc;
+    border: none;
+    border-left: 3px solid #0f172a;
+    border-radius: 4px;
 }

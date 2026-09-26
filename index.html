@@ -262,15 +262,15 @@
             </div>
 
             <!-- MODAL DE EDICIÓN COMPLETO (REDISEÑADO UX/UI ESTILO WHATSAPP) -->
-            <!-- Modal de Edición Completo -->
+            <!-- Modal Unificado de Alumno (Crear y Editar) -->
             <div id="edit-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
                 <div class="modal-content modal-modern-form edit-modal-wide">
                     <div class="modal-header">
                         <div style="display: flex; align-items: center; gap: 0.75rem;">
-                            <div class="modal-icon-badge">✏️</div>
+                            <div class="modal-icon-badge" id="student-modal-icon">✏️</div>
                             <div>
                                 <h2 id="edit-modal-title" style="margin: 0; font-size: 1.25rem;">Editar Datos del Alumno</h2>
-                                <p class="text-muted" style="font-size: 0.82rem; margin: 0;">Modifica todos los datos personales, de contacto y tutores</p>
+                                <p class="text-muted" id="edit-modal-subtitle" style="font-size: 0.82rem; margin: 0;">Modifica todos los datos personales, de contacto y tutores</p>
                             </div>
                         </div>
                         <button id="close-edit-modal" class="close-btn" aria-label="Cerrar">&times;</button>
@@ -291,6 +291,12 @@
                                 <input type="file" id="edit-photo" accept="image/*" class="hidden">
                             </div>
                             <span class="avatar-edit-hint">Pulsa el icono de la cámara para cambiar la foto</span>
+                        </div>
+
+                        <!-- SELECTOR DE CLASE (Visible al crear alumno) -->
+                        <div id="edit-clase-container" class="form-group hidden" style="margin-bottom: 1rem;">
+                            <label class="form-label" for="edit-clase">Clase / Grupo de destino *</label>
+                            <select id="edit-clase" class="form-control-modern"></select>
                         </div>
 
                         <!-- SECCIÓN 1: DATOS PERSONALES -->
@@ -458,96 +464,6 @@
                     .agenda-card { grid-template-columns: 1fr; gap: 1rem; }
                 }
             </style>
-        </div>
-    </div>
-    <!-- MODAL AÑADIR ALUMNO (REDESISEÑADO UX/UI) -->
-    <div id="modal-add-student" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-add-title">
-        <div class="modal-content modal-modern-form">
-            <div class="modal-header">
-                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                    <div class="modal-icon-badge">➕</div>
-                    <div>
-                        <h2 id="modal-add-title" style="margin: 0; font-size: 1.25rem;">Añadir Alumno</h2>
-                        <p class="text-muted" style="font-size: 0.82rem; margin: 0;">Añade manualmente un alumno a la clase</p>
-                    </div>
-                </div>
-                <button class="close-btn" id="close-add-student-modal" aria-label="Cerrar">&times;</button>
-            </div>
-            <form id="add-student-form">
-                <div class="form-row-grid">
-                    <div class="form-group">
-                        <label class="form-label" for="new-nombre">Nombre *</label>
-                        <input type="text" id="new-nombre" class="form-control-modern" placeholder="Ej: Lucas" required autocomplete="off">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="new-apellidos">Apellidos</label>
-                        <input type="text" id="new-apellidos" class="form-control-modern" placeholder="Ej: Martínez Gómez" autocomplete="off">
-                    </div>
-                </div>
-                <div class="form-row-grid">
-                    <div class="form-group">
-                        <label class="form-label" for="new-clase">Clase / Grupo *</label>
-                        <select id="new-clase" class="form-control-modern" required></select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="new-photo">Foto del alumno (opcional)</label>
-                        <input type="file" id="new-photo" accept="image/*" class="form-control-modern file-control">
-                    </div>
-                </div>
-
-                <div class="form-collapsible-section">
-                    <div class="form-section-title">
-                        <span>Contacto y Tutores (Opcional)</span>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="new-telefono">Teléfono del Alumno</label>
-                        <input type="tel" id="new-telefono" class="form-control-modern" placeholder="Ej: 612 345 678" autocomplete="off">
-                    </div>
-                    
-                    <!-- Tutor 1 -->
-                    <div class="tutor-form-box">
-                        <span class="tutor-box-title">Tutor / Familiar 1</span>
-                        <div class="form-group">
-                            <label class="form-label" for="new-tutor1-nombre">Nombre completo</label>
-                            <input type="text" id="new-tutor1-nombre" class="form-control-modern" placeholder="Ej: Carmen Gómez" autocomplete="off">
-                        </div>
-                        <div class="form-row-grid">
-                            <div class="form-group">
-                                <label class="form-label" for="new-tutor1-tel">Teléfono</label>
-                                <input type="tel" id="new-tutor1-tel" class="form-control-modern" placeholder="600 000 000" autocomplete="off">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label" for="new-tutor1-email">Email</label>
-                                <input type="email" id="new-tutor1-email" class="form-control-modern" placeholder="email@ejemplo.com" autocomplete="off">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Tutor 2 -->
-                    <div class="tutor-form-box">
-                        <span class="tutor-box-title">Tutor / Familiar 2</span>
-                        <div class="form-group">
-                            <label class="form-label" for="new-tutor2-nombre">Nombre completo</label>
-                            <input type="text" id="new-tutor2-nombre" class="form-control-modern" placeholder="Ej: Javier Martínez" autocomplete="off">
-                        </div>
-                        <div class="form-row-grid">
-                            <div class="form-group">
-                                <label class="form-label" for="new-tutor2-tel">Teléfono</label>
-                                <input type="tel" id="new-tutor2-tel" class="form-control-modern" placeholder="600 000 000" autocomplete="off">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label" for="new-tutor2-email">Email</label>
-                                <input type="email" id="new-tutor2-email" class="form-control-modern" placeholder="email@ejemplo.com" autocomplete="off">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="modal-actions" style="margin-top: 1.5rem;">
-                    <button type="button" id="cancel-add-student" class="btn secondary">Cancelar</button>
-                    <button type="submit" class="btn primary">Guardar Alumno</button>
-                </div>
-            </form>
         </div>
     </div>
     <!-- MODAL MAPEO DE FOTOS (PREMIUM UX) -->
